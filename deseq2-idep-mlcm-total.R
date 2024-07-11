@@ -75,6 +75,9 @@ write.csv(count_file_cpm, "E:/paper-files/mlcm_total_logcpmc.csv", row.names = T
 count_file_dds <- DESeq2::DESeqDataSetFromMatrix(countData = count_file,
                                                  colData = metadata,
                                                  design = ~group)
+##data transformation for PCA and Corr Plots of data
+
+
 ##converted counts similar to iDEP
 count_file_dds <- DESeq2::estimateSizeFactors(count_file_dds)
 sizeFactors(count_file_dds)
