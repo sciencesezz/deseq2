@@ -76,6 +76,7 @@ count_file_dds <- DESeq2::DESeqDataSetFromMatrix(countData = count_file,
                                                  colData = metadata,
                                                  design = ~group)
 ##data transformation for PCA and Corr Plots of data
+#you can choose multiple options, but i will go with VST in the deseq package
 
 
 ##converted counts similar to iDEP
