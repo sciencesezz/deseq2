@@ -186,12 +186,13 @@ ha_top <- HeatmapAnnotation(
       title_gp = gpar(fontsize = 10, fontface = 'bold'),
       labels_gp = gpar(fontsize = 8, fontface = 'plain'))))
 
-#row annotation
-ha_row <- HeatmapAnnotation(which = "row", 
+#row annotation (order of variables is th eorder of the annotation bars)
+ha_row <- HeatmapAnnotation(which = "row",
+  genotype = metadata$genotype,                          
   condition = metadata$condition,
-  genotype = metadata$genotype,
-  col = list(condition = condition_colours, 
-             genotype = genotype_colours),
+  col = list(genotype = genotype_colours, 
+             condition = condition_colours 
+             ),
   annotation_height = 0.3, 
   annotation_width = unit(1, 'cm'), 
   gap = unit(1, 'mm'), 
@@ -209,7 +210,8 @@ ha_row <- HeatmapAnnotation(which = "row",
       title_position = 'topcenter',
       legend_direction = 'vertical',
       title_gp = gpar(fontsize =10, fontface = 'bold'),
-      labels_gp = gpar(fontsize = 8, fontface = 'plain'))))
+      labels_gp = gpar(fontsize = 8, fontface = 'plain')), 
+    show_annotation_name = FALSE))
 
  corrplot2 <- ComplexHeatmap::Heatmap(corr_value, 
                                      name = "Correlation of Expressed miRNAs", 
@@ -217,11 +219,6 @@ ha_row <- HeatmapAnnotation(which = "row",
                                      right_annotation = ha_row, 
                                      show_row_names = FALSE, 
                                      show_column_names = FALSE, 
-                                     #row_names_gp = gpar(fontsize = 7),
-                                     #column_names_gp = gpar(fontsize = 7), 
-                                     #row_title = metadata$condition, 
-                                     #row_title_side = "right", 
-                                     #row_title_gp = gpar(fontsize = 8, fontface = "plain"), 
                                      heatmap_legend_param = list(
                                        color_bar = "continuous", 
                                        legend_direction = "vertical", 
@@ -231,10 +228,12 @@ ha_row <- HeatmapAnnotation(which = "row",
                                        grid_width = unit(5, "mm"),
                                        grid_height = unit(5, "mm")))
 
-print(corrplot2)
-
-ggsave(filename = "E:/paper-files/mlcm_small_corr.png", plot = corrplot, width = 8, height = 6, dpi = 800)
-
+ #save from viewer...
+ png(file = "E:/paper-files/mlcm_small_corr.png", width = 4, height = 3, dpi = 800)
+ print(corrplot2)
+ dev.off()
+ 
+ ##ive left off how to save this... dunno how at high res.
 ##converted counts similar to iDEP
 count_file_dds <- DESeq2::estimateSizeFactors(count_file_dds)
 sizeFactors(count_file_dds)
