@@ -16,6 +16,9 @@ smallest_group <- 7 #smallest group for pre-filtering, change depending on datas
 FC <- 0.32 # Fold-change cutoff DESeq analysis
 FDR <- 0.05 # FDR cutoff for DESeq analysis
 alpha <- 0.1 # independent filtering, default for DESeq analysis
+condition_colours <- c("Adenoma" = "indianred", "Mature GCs" = "hotpink", 
+                       "Primary GCs" = "springgreen3", "Sex cords" = "steelblue2", 
+                       "Stroma" = "goldenrod")
 ## load count file
 count_file <- read.csv('E:/paper-files/novaseq_total_mlcm_all_counts_final.csv', sep=',', header = TRUE)
 colnames(count_file)[1] = "ensgene" #change column 1 name because imports wonky
@@ -68,7 +71,6 @@ count_file_cpm <- log2(count_file_cpm + pseudo)
 rownames(count_file_cpm) <- rownames(count_file)
 write.csv(count_file_cpm, "E:/paper-files/mlcm_total_logcpmc.csv", row.names = TRUE)
 
-
 ## Creation of the DESeqDataSet to include metadata information
 count_file_dds <- DESeq2::DESeqDataSetFromMatrix(countData = count_file,
                                                  colData = metadata,
@@ -91,14 +93,15 @@ pcaData <- plotPCA(count_file_dds_vst, intgroup = c("condition", "genotype"),
 percentVar <- round(100 * attr(pcaData, "percentVar"))
 
 pcaplot <- ggplot(pcaData, aes(x = PC1, y = PC2, colour = condition, shape = genotype)) +
-  geom_point(size = 3) +
+  geom_point(size = 3, alpha = 0.7) + 
+  scale_color_manual(values = condition_colours) +  
   xlab(paste0("PC1: ", percentVar[1], "% variance")) +
   ylab(paste0("PC2: ", percentVar[2], "% variance"))
 
 print(pcaplot)
 
-ggsave(filename = "E:/paper-files/mlcm_total_pca.png", plot = pcaplot, width = 8, height = 6, dpi = 600)
-
+ggsave(filename = "E:/paper-files/mlcm_total_pca_small.png", plot = pcaplot, width = 4, height = 3, dpi = 800)
+ggsave(filename = "E:/paper-files/mlcm_total_pca_big.png", plot = pcaplot, width = 8, height = 6, dpi = 800)
 #plot correlation
 count_file_mat_vst <- assay(count_file_dds_vst) #extract the vst matrix from the object
 corr_value <- cor(count_file_mat_vst) #compute pairwise correlation values
@@ -106,13 +109,12 @@ corrplot <- pheatmap(corr_value, annotation = select(metadata, condition),
          fontsize_row = 8, 
          fontsize_col = 8, 
          main = "Correlation Values of Sample Transcriptomes")
-
-ggsave(filename = "E:/paper-files/mlcm_total_corr.png", plot = corrplot, width = 8, height = 6, dpi = 600)
-
-##then do the actual differental gene expression analysis
+print(corrplot)
+ggsave(filename = "E:/paper-files/mlcm_total_corr_small.png", plot = corrplot, width = 4, height = 3, dpi = 800)
+ggsave(filename = "E:/paper-files/mlcm_total_corr_big.png", plot = corrplot, width = 8, height = 6, dpi = 800)
+##then do the actual differential gene expression analysis
 count_file_dds <- DESeq2::estimateSizeFactors(count_file_dds)
 sizeFactors(count_file_dds)
-
 dds <- DESeq2::DESeq(count_file_dds)
 
 
