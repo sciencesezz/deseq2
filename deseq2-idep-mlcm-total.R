@@ -22,15 +22,15 @@ colnames(count_file)[1] = "ensgene" #change column 1 name because imports wonky
 count_file <- column_to_rownames(count_file, "ensgene") #changes the first column to rownames and now the df should match the metadata
 
 #create vectors and dataframe containing metadata for the samples, however you can also load a metadatafile created in excel using the read.csv f(x) as well.
-genotype <- c("ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko",
-              "ko", "ko", "ko", "ko", "ko", "ko", "ko", "wt", "wt", "wt", "wt", "wt", "wt", "wt",
-              "wt", "wt", "wt", "wt", "wt", "wt", "wt", "wt", "wt", "wt", "wt", "wt", "wt", "wt")
-condition <- c("adenoma", "adenoma", "adenoma", "adenoma", "adenoma", "adenoma", "adenoma",
-               "stroma", "stroma", "stroma", "stroma", "stroma", "stroma", "stroma",
-               "sex cords", "sex cords", "sex cords", "sex cords", "sex cords", "sex cords", "sex cords",
-               "mature GCs", "mature GCs", "mature GCs", "mature GCs", "mature GCs",  "mature GCs",  "mature GCs", 
-               "primary GCs", "primary GCs", "primary GCs", "primary GCs", "primary GCs", "primary GCs", "primary GCs", 
-               "stroma", "stroma", "stroma", "stroma", "stroma", "stroma", "stroma")
+genotype <- c("KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO",
+              "KO", "KO", "KO", "KO", "KO", "KO", "KO", "WT", "WT", "WT", "WT", "WT", "WT", "WT",
+              "WT", "WT", "WT", "WT", "WT", "WT", "WT", "WT", "WT", "WT", "WT", "WT", "WT", "WT")
+condition <- c("Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma",
+               "Stroma", "Stroma", "Stroma", "Stroma", "Stroma", "Stroma", "Stroma",
+               "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords",
+               "Mature GCs", "Mature GCs", "Mature GCs", "Mature GCs", "Mature GCs",  "Mature GCs",  "Mature GCs", 
+               "Primary GCs", "Primary GCs", "Primary GCs", "Primary GCs", "Primary GCs", "Primary GCs", "Primary GCs", 
+               "Stroma", "Stroma", "Stroma", "Stroma", "Stroma", "Stroma", "Stroma")
 group <- c("Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", 
            "Control", "Control", "Control", "Control", "Control", "Control", "Control", 
            "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", 
@@ -66,8 +66,6 @@ print(count_file_cpm)
 pseudo <- 4
 count_file_cpm <- log2(count_file_cpm + pseudo)
 rownames(count_file_cpm) <- rownames(count_file)
-
-
 write.csv(count_file_cpm, "E:/paper-files/mlcm_total_logcpmc.csv", row.names = TRUE)
 
 
@@ -75,11 +73,43 @@ write.csv(count_file_cpm, "E:/paper-files/mlcm_total_logcpmc.csv", row.names = T
 count_file_dds <- DESeq2::DESeqDataSetFromMatrix(countData = count_file,
                                                  colData = metadata,
                                                  design = ~group)
+
+#set the factor level, tell Deseq which level to compare against
+count_file_dds$group <- relevel(count_file_dds$group, ref = "Control")
+
 ##data transformation for PCA and Corr Plots of data
 #you can choose multiple options, but i will go with VST in the deseq package
+count_file_dds_vst <- vst(count_file_dds, blind = TRUE)
 
+#plot PCA with Deseq2, but you can't do two groups
+DESeq2::plotPCA(count_file_dds_vst, intgroup = c("condition"))
 
-##converted counts similar to iDEP
+#so generate the PCA plot manually with ggplot
+pcaData <- plotPCA(count_file_dds_vst, intgroup = c("condition", "genotype"), 
+                   returnData = TRUE)
+
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+
+pcaplot <- ggplot(pcaData, aes(x = PC1, y = PC2, colour = condition, shape = genotype)) +
+  geom_point(size = 3) +
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance"))
+
+print(pcaplot)
+
+ggsave(filename = "E:/paper-files/mlcm_total_pca.png", plot = pcaplot, width = 8, height = 6, dpi = 600)
+
+#plot correlation
+count_file_mat_vst <- assay(count_file_dds_vst) #extract the vst matrix from the object
+corr_value <- cor(count_file_mat_vst) #compute pairwise correlation values
+corrplot <- pheatmap(corr_value, annotation = select(metadata, condition), 
+         fontsize_row = 8, 
+         fontsize_col = 8, 
+         main = "Correlation Values of Sample Transcriptomes")
+
+ggsave(filename = "E:/paper-files/mlcm_total_corr.png", plot = corrplot, width = 8, height = 6, dpi = 600)
+
+##then do the actual differental gene expression analysis
 count_file_dds <- DESeq2::estimateSizeFactors(count_file_dds)
 sizeFactors(count_file_dds)
 
