@@ -126,9 +126,9 @@ count_file_dds$genotype <- factor(count_file_dds$genotype, levels = order_geno)
 ##data transformation for PCA and Corr Plots of data
 #you can choose multiple options, but i will go with VST in the deseq package
 count_file_dds_vst <- varianceStabilizingTransformation(count_file_dds, blind = TRUE)
-
+##############################PCA Plot############################################
 #plot PCA with Deseq2, but you can't do two groups
-DESeq2::plotPCA(count_file_dds_vst, intgroup = c("condition"))
+#DESeq2::plotPCA(count_file_dds_vst, intgroup = c("condition"))
 
 #so generate the PCA plot manually with ggplot
 pcaData <- plotPCA(count_file_dds_vst, intgroup = c("condition", "genotype"), 
@@ -147,6 +147,7 @@ print(pcaplot)
 ggsave(filename = "E:/paper-files/mlcm_small_pca_big.png", plot = pcaplot, width = 8, height = 6, dpi = 800)
 ggsave(filename = "E:/paper-files/mlcm_small_pca_small.png", plot = pcaplot, width = 4, height = 3, dpi = 800)
 
+#######################ComplexHeatmap Correlation Plot############################
 #plot correlation using pheatmap from deseq2 package I think
 count_file_mat_vst <- assay(count_file_dds_vst) #extract the vst matrix from the object
 corr_value <- cor(count_file_mat_vst) #compute pairwise correlation values
@@ -164,7 +165,6 @@ print(corrplot)
 ####making a heatmap using the ComplexHeatmap function
 #need to make the annotation bars for heatmap annotation
 #top annotation
-
 #relevel the metadata to match the PCA plot
 metadata$condition <- factor(metadata$condition, levels = order_condition)
 metadata$genotype <- factor(metadata$genotype, levels = order_geno)
@@ -241,8 +241,13 @@ corrplot2 <- ComplexHeatmap::Heatmap(corr_value,
                                        title_gp = gpar(fontsize = 12, fontface = "bold"),
                                        labels_gp = gpar(fontsize = 12, fonface = "plain"),
                                        grid_width = unit(3, "mm"),
-                                       grid_height = unit(3, "mm")))
- 
+                                       grid_height = unit(3, "mm")), 
+                                     rect_gp = gpar(col = "grey10", lwd = 0.5),
+                                     cell_fun = function(j, i, x, y, width, height, fill) {
+                                       grid.rect(x = x, y = y, width = width, height = height, 
+                                                 gp = gpar(fill = NA, col = "grey10", lwd = 0.5))
+                                     })
+
 
 print(corrplot2)
 
