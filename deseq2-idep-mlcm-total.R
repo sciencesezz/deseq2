@@ -31,9 +31,9 @@ smallest_group <- 7 #smallest group for pre-filtering, change depending on datas
 FC <- 0.32 # Fold-change cutoff DESeq analysis
 FDR <- 0.05 # FDR cutoff for DESeq analysis
 alpha <- 0.1 # independent filtering, default for DESeq analysis
-condition_colours <- c("Adenoma" = "indianred", "Mature GCs" = "hotpink", 
-                       "Primary GCs" = "springgreen3", "Sex cords" = "steelblue2", 
-                       "Stroma" = "goldenrod")
+condition_colours <- c("Adenoma" = "#D81B60", "Mature GCs" = "#1E88E5", 
+                       "Primary GCs" = "#5D286B", "Sex cords" = "#004D40", 
+                       "Stroma" = "#FFC107") #colour blind safe
 genotype_colours <- c("KO" = "black", "WT" = "grey57")
 
 ## load count file

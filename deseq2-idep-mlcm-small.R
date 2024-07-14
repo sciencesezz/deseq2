@@ -38,9 +38,9 @@ smallest_group <- 7 #smallest group for pre-filtering, change depending on datas
 FC <- 0.32 # Fold-change cutoff DESeq analysis
 FDR <- 0.05 # FDR cutoff for DESeq analysis
 alpha <- 0.1 # independent filtering, default for DESeq analysis
-condition_colours <- c("Adenoma" = "indianred", "Mature GCs" = "hotpink", 
-                       "Primary GCs" = "springgreen3", "Sex cords" = "steelblue2", 
-                       "Stroma" = "goldenrod")
+condition_colours <- c("Adenoma" = "#D81B60", "Mature GCs" = "#1E88E5", 
+                       "Primary GCs" = "#5D286B", "Sex cords" = "#004D40", 
+                       "Stroma" = "#FFC107") #colour blind safe
 genotype_colours <- c("KO" = "black", "WT" = "grey57")
 ## load count file
 count_file <- read.csv('E:/paper-files/novaseq_small_mlcm_counts_final.csv', sep=',', header = TRUE)
@@ -152,16 +152,6 @@ ggsave(filename = "E:/paper-files/mlcm_small_pca_small.png", plot = pcaplot, wid
 count_file_mat_vst <- assay(count_file_dds_vst) #extract the vst matrix from the object
 corr_value <- cor(count_file_mat_vst) #compute pairwise correlation values
 
-corrplot <- pheatmap(corr_value, annotation = select(metadata, condition), 
-                     annotation_colours = annotation_colours, 
-                     fontsize_row = 8, 
-                     fontsize_col = 8, 
-                     #main = "Correlation Values of Expressed miRNAs", 
-                     width = 400, 
-                     height = 300, 
-                     legend = TRUE)
-print(corrplot)
-
 ####making a heatmap using the ComplexHeatmap function
 #need to make the annotation bars for heatmap annotation
 #top annotation
@@ -249,10 +239,8 @@ corrplot2 <- ComplexHeatmap::Heatmap(corr_value,
                                      })
 
 
-print(corrplot2)
-
 #save from viewer...
-png(file = "E:/paper-files/mlcm_small_corr.png", width = 1200 , height = 800, res = 800)
+#png(file = "E:/paper-files/mlcm_small_corr.png", width = 1200 , height = 800, res = 800)
 
 #draw the heatmap
 draw(corrplot2,
@@ -261,7 +249,7 @@ draw(corrplot2,
       merge_legend = TRUE)
  
  # Close the graphics device
- dev.off()
+ #dev.off()
 
 
   
