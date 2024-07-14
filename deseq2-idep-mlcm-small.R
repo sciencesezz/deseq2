@@ -6,7 +6,6 @@
 
 options(lib.loc = "E:/R-packages")
 
-
 if (!requireNamespace('BiocManager', quietly = TRUE))
   install.packages('BiocManager')
 
@@ -42,7 +41,7 @@ alpha <- 0.1 # independent filtering, default for DESeq analysis
 condition_colours <- c("Adenoma" = "indianred", "Mature GCs" = "hotpink", 
                        "Primary GCs" = "springgreen3", "Sex cords" = "steelblue2", 
                        "Stroma" = "goldenrod")
-genotype_colours <- c("KO" = "grey57", "WT" = "chartreuse3")
+genotype_colours <- c("KO" = "black", "WT" = "grey57")
 ## load count file
 count_file <- read.csv('E:/paper-files/novaseq_small_mlcm_counts_final.csv', sep=',', header = TRUE)
 colnames(count_file)[1] = "mirna" #change column 1 name because imports wonky
@@ -119,6 +118,10 @@ count_file_dds <- DESeq2::DESeqDataSetFromMatrix(countData = count_file,
 
 #set the factor level, tell Deseq which level to compare against
 count_file_dds$group <- relevel(count_file_dds$group, ref = "Control")
+order_condition <- c("Adenoma", "Sex cords", "Primary GCs", "Mature GCs", "Stroma")
+order_geno <- c("WT", "KO")
+count_file_dds$condition <- factor(count_file_dds$condition, levels = order_condition)
+count_file_dds$genotype <- factor(count_file_dds$genotype, levels = order_geno)
 
 ##data transformation for PCA and Corr Plots of data
 #you can choose multiple options, but i will go with VST in the deseq package
@@ -161,30 +164,36 @@ print(corrplot)
 ####making a heatmap using the ComplexHeatmap function
 #need to make the annotation bars for heatmap annotation
 #top annotation
+
+#relevel the metadata to match the PCA plot
+metadata$condition <- factor(metadata$condition, levels = order_condition)
+metadata$genotype <- factor(metadata$genotype, levels = order_geno)
+
 ha_top <- HeatmapAnnotation(
   condition = metadata$condition,
   genotype = metadata$genotype,
   col = list(condition = condition_colours, 
              genotype = genotype_colours 
              ),
-  annotation_height = 0.3, 
-  annotation_width = unit(1, 'cm'), 
-  gap = unit(1, 'mm'), 
+  annotation_height = unit(3, "mm"), 
+  annotation_width = unit(0.5, 'cm'), 
+  gap = unit(0.5, 'mm'), 
+  border = TRUE, 
   annotation_legend_param = list(
     condition = list(
       nrow = 5, 
       title = "Condition", 
-      title_position = 'topcenter',
-      legend_direction = 'vertical',
-      title_gp = gpar(fontsize =10, fontface = 'bold'),
-      labels_gp = gpar(fontsize = 8, fontface = 'plain')),
+      title_position = 'topleft',
+      legend_direction = 'horizontal',
+      title_gp = gpar(fontsize =12, fontface = 'bold'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain')),
     genotype = list(
       nrow = 2,
       title = 'Genotype',
-      title_position = 'topcenter',
-      legend_direction = 'vertical',
-      title_gp = gpar(fontsize = 10, fontface = 'bold'),
-      labels_gp = gpar(fontsize = 8, fontface = 'plain'))))
+      title_position = 'topleft',
+      legend_direction = 'horizontal',
+      title_gp = gpar(fontsize = 12, fontface = 'bold'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain'))))
 
 #row annotation (order of variables is th eorder of the annotation bars)
 ha_row <- HeatmapAnnotation(which = "row",
@@ -196,44 +205,62 @@ ha_row <- HeatmapAnnotation(which = "row",
   annotation_height = 0.3, 
   annotation_width = unit(1, 'cm'), 
   gap = unit(1, 'mm'), 
+  border = TRUE, 
+  show_legend = FALSE, 
+  show_annotation_name = FALSE, 
   annotation_legend_param = list(
     genotype = list(
       nrow = 2,
       title = 'Genotype',
       title_position = 'topcenter',
       legend_direction = 'vertical',
-      title_gp = gpar(fontsize = 10, fontface = 'bold'),
-      labels_gp = gpar(fontsize = 8, fontface = 'plain')),
+      title_gp = gpar(fontsize = 12, fontface = 'plain'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain')), 
     condition = list(
       nrow = 5, 
       title = "Condition", 
       title_position = 'topcenter',
       legend_direction = 'vertical',
-      title_gp = gpar(fontsize =10, fontface = 'bold'),
-      labels_gp = gpar(fontsize = 8, fontface = 'plain')), 
-    show_annotation_name = FALSE))
+      title_gp = gpar(fontsize =12, fontface = 'plain'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain')) 
+   ))
 
- corrplot2 <- ComplexHeatmap::Heatmap(corr_value, 
+
+
+corrplot2 <- ComplexHeatmap::Heatmap(corr_value, 
                                      name = "Correlation of Expressed miRNAs", 
                                      top_annotation = ha_top,
                                      right_annotation = ha_row, 
                                      show_row_names = FALSE, 
                                      show_column_names = FALSE, 
+                                     row_names_gp = gpar(fontsize = 10), 
                                      heatmap_legend_param = list(
                                        color_bar = "continuous", 
                                        legend_direction = "vertical", 
                                        title = "Correlation",
-                                       title_gp = gpar(fontsize = 10, fontface = "bold"),
-                                       labels_gp = gpar(fontsize = 8, fonface = "bold"),
-                                       grid_width = unit(5, "mm"),
-                                       grid_height = unit(5, "mm")))
-
- #save from viewer...
- png(file = "E:/paper-files/mlcm_small_corr.png", width = 4, height = 3, dpi = 800)
- print(corrplot2)
- dev.off()
+                                       title_gp = gpar(fontsize = 12, fontface = "bold"),
+                                       labels_gp = gpar(fontsize = 12, fonface = "plain"),
+                                       grid_width = unit(3, "mm"),
+                                       grid_height = unit(3, "mm")))
  
- ##ive left off how to save this... dunno how at high res.
+
+print(corrplot2)
+
+#save from viewer...
+png(file = "E:/paper-files/mlcm_small_corr.png", width = 1200 , height = 800, res = 800)
+
+#draw the heatmap
+draw(corrplot2,
+      heatmap_legend_side = "right",
+      annotation_legend_side = "right",
+      merge_legend = TRUE)
+ 
+ # Close the graphics device
+ dev.off()
+
+
+  
+##ive left off how to save this... dunno how at high res.
 ##converted counts similar to iDEP
 count_file_dds <- DESeq2::estimateSizeFactors(count_file_dds)
 sizeFactors(count_file_dds)
