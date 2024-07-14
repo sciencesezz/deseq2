@@ -6,6 +6,21 @@
 
 options(lib.loc = "E:/R-packages")
 
+if (!requireNamespace('BiocManager', quietly = TRUE))
+  install.packages('BiocManager')
+
+if (!requireNamespace('circlize', quietly = TRUE))
+  BiocManager::install('circlize')
+require(circlize)
+
+if (!requireNamespace('digest', quietly = TRUE))
+  BiocManager::install('digest')
+require(digest)
+
+if (!requireNamespace('cluster', quietly = TRUE))
+  BiocManager::install('cluster')
+require(cluster)
+
 package_load <- c("tidyverse", "DESeq2", "tibble", "dplyr", "tidyr", "readr", "stringr", 
                   "ggplot2", "tidybulk", "ComplexHeatmap", "tidyHeatmap", "ggrepel", "plotly", 
                   "RColorBrewer", "pheatmap", "apeglm", "ashr", "annotables", "edgeR")
@@ -21,12 +36,11 @@ count_file <- read.csv('E:/paper-files/novaseq_total_hlcm_all_counts_primary_str
 colnames(count_file)[1] = "ensgene" #change column 1 name because imports wonky
 count_file <- column_to_rownames(count_file, "ensgene") #changes the first column to rownames and now the df should match the metadata
 
-
 #create vectors and dataframe containing metadata for the samples, however you can also load a metadatafile created in excel using the read.csv f(x) as well.
-condition <- c("benign", "benign", "benign", "benign", "benign", "HGSOC", "HGSOC", "HGSOC", 
-               "normal", "normal", "normal", "normal", "SBT", "SBT", "SBT", "SBT", "SBT", "SBT")
-group <- c("control", "control", "control", "control", "control", "HGSOC", "HGSOC", "HGSOC", 
-           "control", "control", "control", "control", "SBT", "SBT", "SBT", "SBT", "SBT", "SBT")
+condition <- c("Benign", "Benign", "Benign", "Benign", "Benign", "HGSOC", "HGSOC", "HGSOC", 
+               "Normal", "Normal", "Normal", "Normal", "SBT", "SBT", "SBT", "SBT", "SBT", "SBT")
+group <- c("Control", "Control", "Control", "Control", "Control", "HGSOC", "HGSOC", "HGSOC", 
+           "Control", "Control", "Control", "Control", "SBT", "SBT", "SBT", "SBT", "SBT", "SBT")
 metadata <- data.frame(condition, group)
 
 rownames(metadata) <- c("Benign_rep1", "Benign_rep2", "Benign_rep3", "Benign_rep4", "Benign_rep5",  
@@ -58,6 +72,15 @@ write.csv(count_file_cpm, "E:/paper-files/hlcm_total_logcpmc.csv", row.names = T
 count_file_dds <- DESeq2::DESeqDataSetFromMatrix(countData = count_file,
                                                  colData = metadata,
                                                  design = ~group)
+
+#set the factor level, tell Deseq which level to compare against
+count_file_dds$group <- relevel(count_file_dds$group, ref = "Control")
+order_condition <- c("Normal", "Benign", "SBT", "HSGOC")
+order_group <- c("Control", "SBT", "HGSOC")
+count_file_dds$condition <- factor(count_file_dds$condition, levels = order_condition)
+count_file_dds$group <- factor(count_file_dds$group, levels = order_group)
+########here VST
+
 ##converted counts similar to iDEP
 count_file_dds <- DESeq2::estimateSizeFactors(count_file_dds)
 sizeFactors(count_file_dds)
