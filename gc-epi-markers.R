@@ -6,6 +6,8 @@ rm(list = ls())
 
 options(lib.loc = "E:/R-packages")
 
+## I don't need all these packages anymore, but too lazy to delete them so whatever.
+
 library(ggplot2)
 library(tibble)
 library(dplyr)
