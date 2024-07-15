@@ -105,7 +105,7 @@ count_file_dds$genotype <- factor(count_file_dds$genotype, levels = order_geno)
 count_file_dds_vst <- vst(count_file_dds, blind = TRUE)
 
 #plot PCA with Deseq2, but you can't do two groups
-DESeq2::plotPCA(count_file_dds_vst, intgroup = c("condition"))
+#DESeq2::plotPCA(count_file_dds_vst, intgroup = c("condition"))
 
 #so generate the PCA plot manually with ggplot
 pcaData <- plotPCA(count_file_dds_vst, intgroup = c("condition", "genotype"), 
