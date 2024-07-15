@@ -17,6 +17,12 @@ smallest_group <- 9 #smallest group for pre-filtering, change depending on datas
 FC <- 0.32 # Fold-change cutoff DESeq analysis
 FDR <- 0.1 # FDR cutoff for DESeq analysis
 alpha <- 0.1 # independent filtering, default for DESeq analysis
+group_colours <- c("Adenoma" = "#D81B60", 
+                   "Control" = "#1E88E5", 
+                   "Sex cords" = "#004D40")     #colour blind safe
+genotype_colours <- c("KO" = "black", "WT" = "grey57")
+age_colours <- c("1_year" = "#D81B60", "3_months" = "#004D40")
+condition_colours <- c("1y_KO" = "#D81B60", "1y_WT" = "#1E88E5", "3m_KO" = "#004D40", "3m_WT" = "turquoise")
 
 ## load count file
 count_file <- read.csv('E:/paper-files/novaseq_small_mevs_counts_final.csv', sep=',', header = TRUE)
@@ -25,9 +31,9 @@ count_file <- column_to_rownames(count_file, "mirna") #changes the first column 
 
 
 #create vectors and dataframe containing metadata for the samples, however you can also load a metadatafile created in excel using the read.csv f(x) as well.
-genotype <- c("ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko", "wt", "wt", "wt", "wt", "wt",
-              "wt", "wt", "wt", "wt", "wt", "wt", "ko", "ko", "ko", "ko", "ko", "ko", "ko", "ko",
-              "ko", "ko", "wt", "wt", "wt", "wt", "wt", "wt", "wt", "wt", "wt")
+genotype <- c("KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO", "WT", "WT", "WT", "WT", "WT",
+              "WT", "WT", "WT", "WT", "WT", "WT", "KO", "KO", "KO", "KO", "KO", "KO", "KO", "KO",
+              "KO", "KO", "WT", "WT", "WT", "WT", "WT", "WT", "WT", "WT", "WT")
 age <- c("1_year", "1_year", "1_year", "1_year", "1_year", "1_year", "1_year",
          "1_year", "1_year", "1_year", "1_year", "1_year", "1_year", "1_year",
          "1_year", "1_year", "1_year", "1_year", "1_year", "1_year", "3_months",
@@ -74,11 +80,191 @@ write.csv(count_file_cpm, "E:/paper-files/mevs_logcpmc.csv", row.names = TRUE)
 count_file_dds <- DESeqDataSetFromMatrix(countData = count_file,
                                          colData = metadata,
                                          design = ~ condition)
+#set the factor level, tell Deseq which level to compare against
+#count_file_dds$group <- relevel(count_file_dds$group, ref = "Control")
+order_condition <- c("3m_WT", "3m_KO", "1y_WT", "1y_KO")
+order_geno <- c("WT", "KO")
+order_group <- c("Control", "Adenoma", "Sex cords")
+order_age <- c("3_months", "1_year")
 
-#prefiltering - recommended but not required, creates smaller object to increase speed of computation
-#this filters out genes that have greater or equal to 10 counts in at least '7' samples or whatever smallest_group is set as
-keep <- rowSums(counts(count_file_dds) >= 10) >= smallest_group 
-count_file_dds <- count_file_dds[keep,]
+count_file_dds$condition <- factor(count_file_dds$condition, levels = order_condition)
+count_file_dds$genotype <- factor(count_file_dds$genotype, levels = order_geno)
+count_file_dds$group <- factor(count_file_dds$group, levels = order_group)
+count_file_dds$age <- factor(count_file_dds$age, levels = order_age)
+
+##data transformation for PCA and Corr Plots of data
+#you can choose multiple options, but i will go with VST in the deseq package
+count_file_dds_vst <- varianceStabilizingTransformation(count_file_dds, blind = TRUE)
+##############################PCA Plot############################################
+#plot PCA with Deseq2, but you can't do two groups
+#DESeq2::plotPCA(count_file_dds_vst, intgroup = c("condition"))
+
+#so generate the PCA plot manually with ggplot
+pcaData <- plotPCA(count_file_dds_vst, intgroup = c("condition", "genotype"), 
+                   returnData = TRUE)
+
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+
+pcaplot <- ggplot(pcaData, aes(x = PC1, y = PC2, colour = condition, shape = genotype)) +
+  geom_point(size = 3, alpha = 0.7) + 
+  scale_color_manual(values = condition_colours) +  
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance"))
+
+print(pcaplot)
+
+ggsave(filename = "E:/paper-files/mevs_small_pca_big.png", plot = pcaplot, width = 8, height = 6, dpi = 800)
+ggsave(filename = "E:/paper-files/mevs_small_pca_small.png", plot = pcaplot, width = 4, height = 3, dpi = 800)
+
+
+#######################ComplexHeatmap Correlation Plot############################
+#plot correlation using pheatmap from deseq2 package I think
+count_file_mat_vst <- assay(count_file_dds_vst) #extract the vst matrix from the object
+corr_value <- cor(count_file_mat_vst) #compute pairwise correlation values
+
+####making a heatmap using the ComplexHeatmap function
+#need to make the annotation bars for heatmap annotation
+#top annotation
+#relevel the metadata to match the PCA plot
+metadata$condition <- factor(metadata$condition, levels = order_condition)
+metadata$genotype <- factor(metadata$genotype, levels = order_geno)
+metadata$age <- factor(metadata$age, levels = order_age)
+
+ha_top <- HeatmapAnnotation(
+  age = metadata$age,
+  genotype = metadata$genotype,
+  col = list(age = age_colours, 
+             genotype = genotype_colours 
+  ),
+  annotation_height = unit(3, "mm"), 
+  annotation_width = unit(0.5, 'cm'), 
+  gap = unit(0.5, 'mm'), 
+  border = TRUE, 
+  annotation_legend_param = list(
+    age = list(
+      nrow = 2, 
+      title = "Age", 
+      title_position = 'topleft',
+      legend_direction = 'horizontal',
+      title_gp = gpar(fontsize =12, fontface = 'bold'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain')),
+    genotype = list(
+      nrow = 2,
+      title = 'Genotype',
+      title_position = 'topleft',
+      legend_direction = 'horizontal',
+      title_gp = gpar(fontsize = 12, fontface = 'bold'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain'))))
+
+#row annotation (order of variables is th eorder of the annotation bars)
+ha_row <- HeatmapAnnotation(which = "row",
+                            genotype = metadata$genotype,                          
+                            age = metadata$age,
+                            col = list(genotype = genotype_colours, 
+                                       age = age_colours 
+                            ),
+                            annotation_height = 0.3, 
+                            annotation_width = unit(1, 'cm'), 
+                            gap = unit(1, 'mm'), 
+                            border = TRUE, 
+                            show_legend = FALSE, 
+                            show_annotation_name = FALSE, 
+                            annotation_legend_param = list(
+                              genotype = list(
+                                nrow = 2,
+                                title = 'Genotype',
+                                title_position = 'topcenter',
+                                legend_direction = 'vertical',
+                                title_gp = gpar(fontsize = 12, fontface = 'plain'),
+                                labels_gp = gpar(fontsize = 12, fontface = 'plain')), 
+                              age = list(
+                                nrow = 2, 
+                                title = "Age", 
+                                title_position = 'topcenter',
+                                legend_direction = 'vertical',
+                                title_gp = gpar(fontsize =12, fontface = 'plain'),
+                                labels_gp = gpar(fontsize = 12, fontface = 'plain')) 
+                            ))
+
+
+
+corrplot2 <- ComplexHeatmap::Heatmap(corr_value, 
+                                     name = "Correlation of Expressed miRNAs", 
+                                     top_annotation = ha_top,
+                                     right_annotation = ha_row, 
+                                     show_row_names = FALSE, 
+                                     show_column_names = FALSE, 
+                                     row_names_gp = gpar(fontsize = 10), 
+                                     heatmap_legend_param = list(
+                                       color_bar = "continuous", 
+                                       legend_direction = "vertical", 
+                                       title = "Correlation",
+                                       title_gp = gpar(fontsize = 12, fontface = "bold"),
+                                       labels_gp = gpar(fontsize = 12, fonface = "plain"),
+                                       grid_width = unit(3, "mm"),
+                                       grid_height = unit(3, "mm")), 
+                                     rect_gp = gpar(col = "grey10", lwd = 0.5),
+                                     cell_fun = function(j, i, x, y, width, height, fill) {
+                                       grid.rect(x = x, y = y, width = width, height = height, 
+                                                 gp = gpar(fill = NA, col = "grey10", lwd = 0.5))
+                                     })
+
+
+#save from viewer...
+#png(file = "E:/paper-files/mlcm_small_corr.png", width = 1200 , height = 800, res = 800)
+
+#draw the heatmap
+draw(corrplot2,
+     heatmap_legend_side = "right",
+     annotation_legend_side = "right",
+     merge_legend = TRUE)
+
+# Close the graphics device
+#dev.off()
+#######################ComplexHeatmap Log(cpm+c) data############################
+
+ha_top2 <- HeatmapAnnotation(
+  condition = metadata$condition,
+  col = list(condition = condition_colours),
+  annotation_height = unit(3, "mm"), 
+  annotation_width = unit(0.5, 'cm'), 
+  gap = unit(0.5, 'mm'), 
+  border = TRUE, 
+  annotation_legend_param = list(
+    condition = list(
+      nrow = 4, 
+      title = "Condition", 
+      title_position = 'topleft',
+      legend_direction = 'horizontal',
+      title_gp = gpar(fontsize =12, fontface = 'bold'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain'))))
+  
+#row annotation (order of variables is th eorder of the annotation bars)
+
+corrplot3 <- ComplexHeatmap::Heatmap(count_file_cpm, 
+                                     name = "Correlation of Expressed miRNAs", 
+                                     top_annotation = ha_top2,
+                                     show_row_names = FALSE, 
+                                     show_column_names = FALSE, 
+                                     row_names_gp = gpar(fontsize = 10),
+                                     heatmap_legend_param = list(
+                                       color_bar = "continuous", 
+                                       legend_direction = "vertical", 
+                                       title = "Log2(cpm + C)",
+                                       title_gp = gpar(fontsize = 12, fontface = "bold"),
+                                       labels_gp = gpar(fontsize = 12, fonface = "plain"),
+                                       grid_width = unit(3, "mm"),
+                                       grid_height = unit(3, "mm")))
+
+#save from viewer...
+#png(file = "E:/paper-files/mlcm_small_corr.png", width = 1200 , height = 800, res = 800)
+
+#draw the heatmap
+draw(corrplot3,
+     heatmap_legend_side = "right",
+     annotation_legend_side = "right",
+     merge_legend = TRUE)
+
 
 ##converted counts similar to iDEP
 count_file_dds <- DESeq2::estimateSizeFactors(count_file_dds)
