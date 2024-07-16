@@ -1,58 +1,40 @@
+
+rm(list = ls())
 ##change path that packages are loaded to
 .libPaths("E:/R-packages") #make sure this is set up locally
 .libPaths()#prints out the paths, in position 1 is where the packages will be loaded
 
 options(lib.loc = "E:/R-packages")
 
-rm(list = ls())
-
-library_install <- c("ComplexHeatmap", "VennDiagram", "dplyr", "limma", "edgeR")
-
-
-if (!require("BiocManager", quietly = TRUE))
-install.packages("BiocManager")
-BiocManager::install(library_install, lib = "E:/R-packages", force = TRUE)
-
-install.packages("devtools", lib = "E:/R-packages", 
-                 destdir = "E:/R-4.3.2/library")
-devtools::install_github("stephenturner/annotables")
-install.packages("annotatables", lib = "E:/R-packages", 
-                 destdir = "E:/R-4.3.2/library")
-
-library(ComplexHeatmap)
-library(VennDiagram)
-library(dplyr)
-library(limma)
-library(edgeR)
-library(annotables)
-library(tibble)
-library(tools)
-library(ggplot2)
-library(tidyHeatmap)
-
+package_load <- c("tidyverse", "DESeq2", "tibble", "dplyr", "tidyr", "readr", "stringr", 
+                  "ggplot2", "tidybulk", "ComplexHeatmap", "tidyHeatmap", "ggrepel", "plotly", 
+                  "RColorBrewer", "pheatmap", "apeglm", "ashr", "annotables", "edgeR", "VennDiagram", "limma", 
+                  "tools")
+lapply(package_load, require, character.only = TRUE)
 
 
 #############################Upload files as variables##########################
-sxcd <- read.csv('E:/sxcd_v_control_deseq_normal.csv', sep=',', header = TRUE)
-adeno <- read.csv('E:/adeno_v_control_deseq_normal.csv', sep=',', header = TRUE)
-sbt <- read.csv('E:/SBT_v_control_deseq_total_normal.csv', sep=',', header = TRUE)
-hgsoc <- read.csv('E:/HGSOC_v_control_deseq_total_normal.csv', sep=',', header = TRUE)
+sxcd <- read.csv('E:/paper-files/mlcm_total_sxcd_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+adeno <- read.csv('E:/paper-files/mlcm_total_adeno_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+sbt <- read.csv('E:/paper-files/hlcm_total_SBT_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+hgsoc <- read.csv('E:/paper-files/hlcm_total_HGSOC_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
 
-#set all symbols into lower case so they can be matched
+#set all symbols into lower case so they can be matched, I've already done this, but for simplicity sake
+#also keep this block of code instead of referring to casematch column as symbol.
 sxcd$symbol <- tolower(sxcd$symbol)
 adeno$symbol <- tolower(adeno$symbol)
 sbt$symbol <- tolower(sbt$symbol)
 hgsoc$symbol <- tolower(hgsoc$symbol)
 
 #filter each dataset for mRNAs
-sxcd_up <- filter(sxcd, log2FoldChange >= 2, biotype == "protein_coding", symbol != "")
-sxcd_down <- filter(sxcd, log2FoldChange <= -2, biotype == "protein_coding", symbol != "")
-adeno_up <- filter(adeno, log2FoldChange >= 2, biotype == "protein_coding", symbol != "")
-adeno_down <- filter(adeno, log2FoldChange <= -2, biotype == "protein_coding", symbol != "")
-sbt_up <- filter(sbt, log2FoldChange >= 2, biotype == "protein_coding", symbol != "")
-sbt_down <- filter(sbt, log2FoldChange <= -2, biotype == "protein_coding", symbol != "")
-hgsoc_up <- filter(hgsoc, log2FoldChange >= 2, biotype == "protein_coding", symbol != "")
-hgsoc_down <- filter(hgsoc, log2FoldChange <= -2, biotype == "protein_coding", symbol != "")
+sxcd_up <- filter(sxcd, log2FoldChange >= 0, biotype == "protein_coding", symbol != "")
+sxcd_down <- filter(sxcd, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
+adeno_up <- filter(adeno, log2FoldChange >= 0, biotype == "protein_coding", symbol != "")
+adeno_down <- filter(adeno, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
+sbt_up <- filter(sbt, log2FoldChange >= 0, biotype == "protein_coding", symbol != "")
+sbt_down <- filter(sbt, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
+hgsoc_up <- filter(hgsoc, log2FoldChange >= 0, biotype == "protein_coding", symbol != "")
+hgsoc_down <- filter(hgsoc, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
 
 sxcd_up <- arrange(sxcd_up, -log2FoldChange) %>%
   select(symbol)
@@ -93,7 +75,7 @@ venn_data_ordered_down <- list(Sexcords = sxcd_down,
 
 venn_up_mh <- venn.diagram(x = venn_data_ordered_up,
                              category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
-                             filename = "E:/R-output/venn_up_mh.tiff",
+                             filename = "E:/paper-files/images/venn_up_mh.tiff",
                              disable.logging = FALSE, 
                              imagetype = "tiff", 
                              main = "Mouse versus Human", 
@@ -115,7 +97,7 @@ venn_up_mh <- venn.diagram(x = venn_data_ordered_up,
 
 venn_down_mh <- venn.diagram(x = venn_data_ordered_down,
                            category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
-                           filename = "E:/R-output/venn_down_mh.tiff",
+                           filename = "E:/paper-files/images/venn_down_mh.tiff",
                            disable.logging = FALSE, 
                            imagetype = "tiff", 
                            main = "Mouse versus Human", 
@@ -146,7 +128,7 @@ padded_list_up <- lapply(elements_up, function(vec) {
   vec
 })
 elements_up_df <- data.frame(padded_list_up)
-write.csv(elements_up_df, file = "E:/R-output/elements_up_df.csv", 
+write.csv(elements_up_df, file = "E:/paper-files/total_lcm_venn_elements_up_df.csv", 
           row.names = FALSE)
 
 #repeat for downregulated genes
@@ -161,37 +143,24 @@ padded_list_down <- lapply(elements_down, function(vec) {
 })
 elements_down_df <- data.frame(padded_list_down)
 
-write.csv(elements_down_df, file = "E:/R-output/elements_down_df.csv", row.names = FALSE)
+write.csv(elements_down_df, file = "E:/paper-files/total_lcm_venn_elements_down_df.csv", row.names = FALSE)
 
-################################LOGCPM of Count Matrix##############################
+################################import logcpm+c files##############################
+logcpm_mouse <- read.csv('E:/paper-files/mlcm_total_logcpmc.csv', sep=',', header = TRUE)
+logcpm_human <- read.csv('E:/paper-files/hlcm_total_logcpmc.csv', sep=',', header = TRUE)
 
-#import raw count matrix
-mouse_counts <- as.data.frame(read.csv('E:/input-files/novaseq_total_mlcm_all_counts_final.csv', sep=',', 
-                                   header = TRUE))
-rownames(mouse_counts) <- mouse_counts[, 1]
-mouse_counts <- mouse_counts[, -1]
-
-human_counts <- as.data.frame(read.csv('E:/input-files/novaseq_total_hlcm_all_counts_primary_stranded_final_hgsocxbenignx.csv', 
-                         sep=',', header = TRUE))
-rownames(human_counts) <- human_counts[, 1]
-human_counts <- human_counts[, -1]
-
-#convert matrix to cpm+c counts in edgeR
-c_value <- 1
-
-cpm_mouse <- cpm(mouse_counts)
-logcpm_mouse <- log2(cpm_mouse + c_value)
+#add gene symbols
 logcpm_mouse <- as.data.frame(logcpm_mouse)
-logcpm_mouse <- rownames_to_column(logcpm_mouse, var = "ensgene")
+colnames(logcpm_mouse)[1] <- "ensgene"
+logcpm_mouse <- rownames_to_column(logcpm_mouse)
 
-cpm_human <- cpm(human_counts)
-logcpm_human <- log2(cpm_human + c_value)
 logcpm_human <- as.data.frame(logcpm_human)
-logcpm_human <- rownames_to_column(logcpm_human, var = "ensgene")
+colnames(logcpm_human)[1] <- "ensgene"
+logcpm_human <- rownames_to_column(logcpm_human)
 
 logcpm_mouse <- left_join(x = logcpm_mouse,
-                           y = grcm38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
-                           by = "ensgene")
+                          y = grcm38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
+                          by = "ensgene")
 logcpm_mouse <- logcpm_mouse %>%
   mutate(symbol = tolower(symbol))
 
@@ -202,13 +171,9 @@ logcpm_human <- left_join(x = logcpm_human,
 logcpm_human <- logcpm_human %>%
   mutate(symbol = tolower(symbol))
 
-
-write.csv(logcpm_mouse, file = "E:/R-output/logcpm_mouse_mlcm.csv", row.names = FALSE)
-write.csv(logcpm_human, file = "E:/R-output/logcpm_human_mlcm.csv", row.names = FALSE)
-
 ##################################filter logCPM data to common genes#########################
-common_degs_up  <- na.omit(elements_up_df$a6)
-common_degs_up <- c(common_degs_up)
+common_degs_up  <- na.omit(elements_up_df$a6) #filter for the a6 column which is the intersection
+common_degs_up <- c(common_degs_up) #concatenate into vector
 
 common_degs_down <- na.omit(elements_down_df$a6)
 common_degs_down <- c(common_degs_down)
@@ -236,11 +201,14 @@ mouse_names <- c("ensgene", "Adenoma_1", "Adenoma_2", "Adenoma_3", "Adenoma_4", 
            "m_Control_15", "m_Control_16", "m_Control_17", "m_Control_18", "m_Control_19", "m_Control_20", "m_Control_21", 
            "m_Control_22", "m_Control_23", "m_Control_24", "m_Control_25", "m_Control_26", "m_Control_27", "m_Control_28", 
            "symbol", "entrez", "biotype", "description")
-human_names <- c("ensgene", "h_Control_1", "h_Control_2", "h_Control_3", "h_Control_4", 
+human_names <- c("ensgene", "h_Control_1", "h_Control_2", "h_Control_3", "h_Control_4", "h_Control_5", 
                  "HGSOC_1", "HGSOC_2", "HGSOC_3", 
-                 "h_Control_5", "h_Control_6", "h_Control_7", "h_Control_8", 
+                 "h_Control_6", "h_Control_7", "h_Control_8", "h_Control_9", 
                  "SBT_1", "SBT_2", "SBT_3", "SBT_4", "SBT_5", "SBT_6", 
                  "symbol", "entrez", "biotype", "description")
+
+mouse_common <- mouse_common[,-1]
+human_common <- human_common[,-1]
 
 colnames(mouse_common) <- mouse_names
 colnames(human_common) <- human_names
@@ -249,11 +217,23 @@ mouse_common <- arrange(mouse_common, symbol)
 human_common <- arrange(human_common, symbol)
 
 common_symbol <- mouse_common$symbol
+
 common_symbol <- toTitleCase(common_symbol)
+
+#left with mouse_common and human_common
 
 
 ##there's a duplicate in the human dataframe, need to delete that##
-human_common <- human_common[-78,]
+# Check if the number of distinct symbols is equal to the total number of symbols
+mouse_unique <- nrow(mouse_common) == nrow(distinct(mouse_common, symbol))
+human_unique <- nrow(human_common) == nrow(distinct(human_common, symbol))
+
+# Print the results
+mouse_unique
+human_unique
+
+human_common <- human_common[-233,]
+
 
 mouse_exp <- mouse_common[,2:43]
 human_exp <- human_common[,2:18]
@@ -266,11 +246,15 @@ m_h_exp <- data.frame(Gene = common_symbol, m_h_exp)
 rownames(m_h_exp) <- m_h_exp$Gene
 m_h_exp <- m_h_exp[,2:60]
 
+#left with a matrix that has gene symbols in alpha order for all of the samples
+#the values of 
 
 #####################################HEATMAP####################################
 #make dataframe into matrix
 m_h_exp <- as.matrix(m_h_exp)
 m_h_exp_df <- as.data.frame(m_h_exp)
+
+###I have to figure out what all this means....I dont remember what the heck I was up to.
 
 sxcd_lfc <- sxcd %>%
   filter(symbol %in% common_degs)%>%
