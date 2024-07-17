@@ -236,7 +236,7 @@ human_common <- human_common[-233,]
 
 
 mouse_exp <- mouse_common[,2:43]
-human_exp <- human_common[,2:18]
+human_exp <- human_common[,2:19]
 
 m_h_exp <- dplyr::bind_cols(mouse_exp, human_exp)
 
@@ -244,7 +244,7 @@ m_h_exp <- dplyr::bind_cols(mouse_exp, human_exp)
 
 m_h_exp <- data.frame(Gene = common_symbol, m_h_exp)
 rownames(m_h_exp) <- m_h_exp$Gene
-m_h_exp <- m_h_exp[,2:60]
+m_h_exp <- m_h_exp[,2:61]
 
 #left with a matrix that has gene symbols in alpha order for all of the samples
 #the values of 
@@ -395,19 +395,176 @@ down <- ggplot(top_genes_down, aes(x = condition, y = symbol, size = log2FoldCha
   labs(x = "Phenotype", y = "Genes", size = "log2FC", color = "-log10padj") +  
   theme_grey()  # Optional: Adjust theme as needed
 
-
-
-
-
-
-
-
-
 # Display the plot
 print(up)
 print(down)
 
 ## not sure I like that representation of the data
+
+##maybe too many genes to represent with gene expression data...
+##maybe correlation matrix instead?
+
+corr_value <- cor(m_h_exp)
+corrplot <- pheatmap(corr_value, 
+                     fontsize_row = 8, 
+                     fontsize_col = 8, 
+                     main = "Correlation Values of Sample Transcriptomes")
+print(corrplot)
+
+###get prepped for complex heatmap
+group <- c("Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", 
+                   "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", 
+                   "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", 
+                   "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", 
+                   "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", 
+                   "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", "Mouse Control", 
+                   "Human Control", "Human Control", "Human Control", "Human Control", "Human Control", "HGSOC", "HGSOC", "HGSOC", 
+                   "Human Control", "Human Control", "Human Control", "Human Control", 
+                   "SBT", "SBT", "SBT", "SBT", "SBT", "SBT")
+condition <- c("Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", 
+                       "KO Stroma", "KO Stroma", "KO Stroma", "KO Stroma", "KO Stroma", "KO Stroma", "KO Stroma", 
+                       "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", "Sex cords", 
+                       "Mature GCs", "Mature GCs", "Mature GCs", "Mature GCs", "Mature GCs", "Mature GCs", "Mature GCs", 
+                       "Primary GCs", "Primary GCs", "Primary GCs", "Primary GCs", "Primary GCs", "Primary GCs", "Primary GCs", 
+                       "WT Stroma", "WT Stroma", "WT Stroma", "WT Stroma", "WT Stroma", "WT Stroma", "WT Stroma", 
+                       "Benign", "Benign", "Benign", "Benign", "Benign", "HGSOC", "HGSOC", "HGSOC", 
+                       "Normal", "Normal", "Normal", "Normal", 
+                       "SBT", "SBT", "SBT", "SBT", "SBT", "SBT")
+species <- c("Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", 
+                    "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", 
+                    "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", 
+                    "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", 
+                    "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", 
+                    "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", "Mouse", 
+                    "Human",  "Human",  "Human",  "Human",  "Human",  "Human",  "Human",  "Human", 
+                    "Human",  "Human",  "Human",  "Human", 
+                    "Human",  "Human",  "Human",  "Human",  "Human",  "Human")
+
+metadata <- data.frame(species, condition, group)
+rownames(metadata) <- colnames(m_h_exp)
+all(rownames(metadata) == colnames(m_h_exp))
+
+order_condition <- c("Adenoma", "Sex cords", "Primary GCs", "Mature GCs", "WT Stroma", "KO Stroma", 
+                     "HGSOC", "SBT", "Normal", "Benign")
+order_group <- c("Mouse Control", "Sex cords", "Adenoma", 
+                 "Human Control", "SBT", "HGSOC")
+order_species <- c("Mouse", "Human")
+                                  
+#relevel the metadata to match the PCA plot
+metadata$condition <- factor(metadata$condition, levels = order_condition)
+metadata$group <- factor(metadata$group, levels = order_group)
+metadata$species <- factor(metadata$species, levels = order_species)
+
+condition_colours <- c("Adenoma" = "#D81B60", "Mature GCs" = "#1E88E5", 
+                       "Primary GCs" = "#5D286B", "Sex cords" = "#004D40", 
+                       "WT Stroma" = "#FFC107", "KO Stroma" = "darkorange", 
+                       "HGSOC" = "#D81B60", "Normal" = "#1E88E5", "SBT" = "#004D40", "Benign" = "#5D286B")
+group_colours <- c("Mouse Control" = "#FFC107", "Sex cords" = "#004D40", "Adenoma" = "#D81B60", 
+                   "Human Control" = "darkorange", "SBT" = "magenta", "HGSOC" = "seagreen")
+species_colours <- c("Mouse" = "black", "Human" = "honeydew4")
+
+#colour blind safe
+
+ha_top <- HeatmapAnnotation(
+  species = metadata$species, 
+  condition = metadata$condition,
+  group = metadata$group,
+  col = list(species = species_colours, 
+             condition = condition_colours, 
+            group = group_colours),
+  annotation_height = unit(3, "mm"), 
+  annotation_width = unit(0.5, 'cm'), 
+  gap = unit(0.5, 'mm'), 
+  border = TRUE, 
+  annotation_legend_param = list(
+    species = list(
+      nrow = 2, 
+      title = "Species", 
+      title_position = 'topleft',
+      legend_direction = 'horizontal',
+      title_gp = gpar(fontsize =12, fontface = 'bold'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain')),
+    condition = list(
+      nrow = 10, 
+      title = "Condition", 
+      title_position = 'topleft',
+      legend_direction = 'horizontal',
+      title_gp = gpar(fontsize =12, fontface = 'bold'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain')),
+    group = list(
+      nrow = 6,
+      title = 'Group',
+      title_position = 'topleft',
+      legend_direction = 'horizontal',
+      title_gp = gpar(fontsize = 12, fontface = 'bold'),
+      labels_gp = gpar(fontsize = 12, fontface = 'plain'))))
+
+#row annotation (order of variables is th eorder of the annotation bars)
+ha_row <- HeatmapAnnotation(which = "row",
+                            species = metadata$species,                          
+                            condition = metadata$condition,
+                            group = metadata$group, 
+                            col = list(species = species_colours, 
+                                       condition = condition_colours, 
+                                       group = group_colours
+                            ),
+                            annotation_height = 0.3, 
+                            annotation_width = unit(1, 'cm'), 
+                            gap = unit(1, 'mm'), 
+                            border = TRUE, 
+                            show_legend = FALSE, 
+                            show_annotation_name = FALSE, 
+                            annotation_legend_param = list(
+                              species = list(
+                                nrow = 2,
+                                title = 'Species',
+                                title_position = 'topcenter',
+                                legend_direction = 'vertical',
+                                title_gp = gpar(fontsize = 12, fontface = 'plain'),
+                                labels_gp = gpar(fontsize = 12, fontface = 'plain')), 
+                              condition = list(
+                                nrow = 10, 
+                                title = "Condition", 
+                                title_position = 'topleft',
+                                legend_direction = 'horizontal',
+                                title_gp = gpar(fontsize =12, fontface = 'bold'),
+                                labels_gp = gpar(fontsize = 12, fontface = 'plain')),
+                              group = list(
+                                nrow = 6,
+                                title = 'Group',
+                                title_position = 'topleft',
+                                legend_direction = 'horizontal',
+                                title_gp = gpar(fontsize = 12, fontface = 'bold'),
+                                labels_gp = gpar(fontsize = 12, fontface = 'plain'))))
+
+corrplot2 <- ComplexHeatmap::Heatmap(corr_value, 
+                                     name = "Correlation of Mouse and Human Common DEGs", 
+                                     top_annotation = ha_top,
+                                     right_annotation = ha_row, 
+                                     show_row_names = FALSE, 
+                                     show_column_names = FALSE, 
+                                     row_names_gp = gpar(fontsize = 10), 
+                                     heatmap_legend_param = list(
+                                       color_bar = "continuous", 
+                                       legend_direction = "vertical", 
+                                       title = "Correlation",
+                                       title_gp = gpar(fontsize = 12, fontface = "bold"),
+                                       labels_gp = gpar(fontsize = 12, fonface = "plain"),
+                                       grid_width = unit(3, "mm"),
+                                       grid_height = unit(3, "mm")), 
+                                     rect_gp = gpar(col = "grey10", lwd = 0.5),
+                                     cell_fun = function(j, i, x, y, width, height, fill) {
+                                       grid.rect(x = x, y = y, width = width, height = height, 
+                                                 gp = gpar(fill = NA, col = "grey10", lwd = 0.5))
+                                     })
+
+
+
+
+
+
+
+
 #try heat map with logFC >= 2
 logfc_dfs <- list(sxcd_lfc = sxcd_lfc, 
                   adeno_lfc = adeno_lfc, 
