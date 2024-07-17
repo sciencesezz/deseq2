@@ -252,33 +252,40 @@ m_h_exp <- m_h_exp[,2:60]
 #####################################HEATMAP####################################
 #make dataframe into matrix
 m_h_exp <- as.matrix(m_h_exp)
-m_h_exp_df <- as.data.frame(m_h_exp)
+m_h_exp_df <- as.data.frame(m_h_exp) #this only gives each individual log2CPM value
+
+#so it looks like I filtered all the original files by the common_degs list (up and down)
+#and then included the symbol, log2FC and padj values into a matrix.
 
 ###I have to figure out what all this means....I dont remember what the heck I was up to.
 
 sxcd_lfc <- sxcd %>%
   filter(symbol %in% common_degs)%>%
   arrange(symbol)
-sxcd_lfc <- as.matrix(dplyr::select(sxcd_lfc, symbol, log2FoldChange))
+sxcd_lfc <- as.matrix(dplyr::select(sxcd_lfc, symbol, log2FoldChange, padj))
 adeno_lfc <- adeno %>%
   filter(symbol %in% common_degs)%>%
   arrange(symbol)
-adeno_lfc <- dplyr::select(adeno_lfc, symbol, log2FoldChange)
+adeno_lfc <- dplyr::select(adeno_lfc, symbol, log2FoldChange, padj)
 sbt_lfc <- sbt %>%
   filter(symbol %in% common_degs)%>%
   arrange(symbol)
-sbt_lfc <- dplyr::select(sbt_lfc, symbol, log2FoldChange)
+sbt_lfc <- dplyr::select(sbt_lfc, symbol, log2FoldChange, padj)
 hgsoc_lfc <- hgsoc %>%
   filter(symbol %in% common_degs) %>%
   arrange(symbol)
-hgsoc_lfc <- dplyr::select(hgsoc_lfc, symbol, log2FoldChange)
-hgsoc_lfc <- hgsoc_lfc[-78,]
-sbt_lfc <- sbt_lfc[-78,]
+hgsoc_lfc <- dplyr::select(hgsoc_lfc, symbol, log2FoldChange, padj)
 
-lfc_all <- dplyr::bind_cols(sxcd_lfc, adeno_lfc$log2FoldChange, sbt_lfc$log2FoldChange, 
-                            hgsoc_lfc$log2FoldChange)
+#tmprss2 is repeated so remove that gene
 
-new_col_names <- c("symbol", "Sex cords", "Adenoma", "SBT", "HGSOC")
+hgsoc_lfc <- hgsoc_lfc[-233,]
+sbt_lfc <- sbt_lfc[-233,]
+
+lfc_all <- dplyr::bind_cols(sxcd_lfc, adeno_lfc$log2FoldChange, adeno_lfc$padj, sbt_lfc$log2FoldChange, 
+                            sbt_lfc$padj, hgsoc_lfc$log2FoldChange, hgsoc_lfc$padj)
+
+new_col_names <- c("symbol", "Sexcords", "sc_padj", "Adenoma", "adeno_padj", "SBT", "sbt_padj", 
+                   "HGSOC", "hg_padj")
 colnames(lfc_all) <- new_col_names
 
 sample_groups <- c("Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", "Adenoma", 
@@ -299,15 +306,158 @@ anno_colours <- c("Mouse Control" = "gold", "Sex cords" = "plum3", "Adenoma" = "
 
 sample_groups <- factor(sample_groups, levels = names(anno_colours))
 
-  
+##make a dotplot of top 20 up and down genes
+##need to make up and down regulated gene list...
 
-heatmap_m_h_common <- Heatmap(m_h_exp, cluster_rows = TRUE, cluster_columns = TRUE, 
+top_dfs <- list(sxcd_lfc = sxcd_lfc, 
+                adeno_lfc = adeno_lfc, 
+                sbt_lfc = sbt_lfc, 
+                hgsoc_lfc = hgsoc_lfc)
+
+# Loop over each dataframe in the list
+for (name in names(top_dfs)) {
+  df <- as.data.frame(top_dfs[[name]])
+  df$log2FoldChange <- as.numeric(df$log2FoldChange)
+  # Sort by log2FoldChange in decreasing order for upregulated genes
+  df_sorted_up <- df[order(df$log2FoldChange, decreasing = TRUE), ]
+  top20_up <- head(df_sorted_up, 20)
+    # Sort by log2FoldChange in increasing order for downregulated genes
+  df_sorted_down <- df[order(df$log2FoldChange, decreasing = FALSE), ]
+  top20_down <- head(df_sorted_down, 20)
+    # Store the top 20 dataframes in the global environment
+  assign(paste0(name, "_top20_up"), top20_up)
+  assign(paste0(name, "_top20_down"), top20_down)
+}
+
+# Access the results they now should be of the structure sxcd_lfc_top20_up
+#add the phenotype to each dataframe
+sxcd_lfc_top20_up$condition <- "Sexcords"
+adeno_lfc_top20_up$condition <- "Adenoma"
+sbt_lfc_top20_up$condition <- "SBT"
+hgsoc_lfc_top20_up$condition <- "HGSOC"
+sxcd_lfc_top20_down$condition <- "Sexcords"
+adeno_lfc_top20_down$condition <- "Adenoma"
+sbt_lfc_top20_down$condition <- "SBT"
+hgsoc_lfc_top20_down$condition <- "HGSOC"
+
+sxcd_lfc_top20_up$regulation <- "Up"
+adeno_lfc_top20_up$regulation <- "Up"
+sbt_lfc_top20_up$regulation <- "Up"
+hgsoc_lfc_top20_up$regulation <- "Up"
+sxcd_lfc_top20_down$regulation <- "Down"
+adeno_lfc_top20_down$regulation <- "Down"
+sbt_lfc_top20_down$regulation <- "Down"
+hgsoc_lfc_top20_down$regulation <- "Down"
+
+# List of dataframes
+dataframes_list <- list(sxcd_lfc_top20_up, 
+                        adeno_lfc_top20_up, 
+                        sbt_lfc_top20_up, 
+                        hgsoc_lfc_top20_up, 
+                        sxcd_lfc_top20_down, 
+                        adeno_lfc_top20_down, 
+                        sbt_lfc_top20_down, 
+                        hgsoc_lfc_top20_down)
+
+top_genes_all <- do.call(rbind, dataframes_list)
+
+levels_condition <- c("Sexcords", "Adenoma", "SBT", "HGSOC")
+levels_regulation <- c("Up", "Down")
+
+# Relevel condition column
+top_genes_all$condition <- factor(top_genes_all$condition, levels = levels_condition)
+
+# Relevel regulation column
+top_genes_all$regulation <- factor(top_genes_all$regulation, levels = levels_regulation)
+
+# Print the updated dataframe
+print(top_genes_all)
+
+#convert padj to numeric to calculate -log for the dotplot
+top_genes_all$padj <- as.numeric(as.character(top_genes_all$padj))
+top_genes_all$log_padj <- -log10(top_genes_all$padj)
+top_genes_all$symbol <- toTitleCase(top_genes_all$symbol)
+
+top_genes_up <- top_genes_all[top_genes_all$regulation == "Up", ]
+top_genes_down <- top_genes_all[top_genes_all$regulation == "Down", ]
+
+up <- ggplot(top_genes_up, aes(x = condition, y = symbol, size = log2FoldChange, color = log_padj)) +
+  geom_point() +  # Separate points by regulation (Up/Down)
+  scale_color_gradient(low = "blue", high = "red") +  # Color gradient for padj
+  scale_size_continuous(range = c(1, 10)) +  # Adjust size range as needed
+  labs(x = "Phenotype", y = "Genes", size = "log2FC", color = "-log10padj") +  
+  theme_grey()  # Optional: Adjust theme as needed
+
+down <- ggplot(top_genes_down, aes(x = condition, y = symbol, size = log2FoldChange, color = log_padj)) +
+  geom_point() +  # Separate points by regulation (Up/Down)
+  scale_color_gradient(low = "blue", high = "red") +  # Color gradient for padj
+  scale_size_continuous(range = c(1, 10)) +  # Adjust size range as needed
+  labs(x = "Phenotype", y = "Genes", size = "log2FC", color = "-log10padj") +  
+  theme_grey()  # Optional: Adjust theme as needed
+
+
+
+
+
+
+
+
+
+# Display the plot
+print(up)
+print(down)
+
+## not sure I like that representation of the data
+#try heat map with logFC >= 2
+logfc_dfs <- list(sxcd_lfc = sxcd_lfc, 
+                  adeno_lfc = adeno_lfc, 
+                  sbt_lfc = sbt_lfc, 
+                  hgsoc_lfc =  hgsoc_lfc)
+
+for (name in names(logfc_dfs)) {
+  df <- logfc_dfs[[name]]
+  df$log2FoldChange <- as.numeric(df$log2FoldChange)
+  # Filter out NA values and apply the filter condition
+  filtered_df <- df %>%
+    filter(log2FoldChange >= 2)
+    # Assign the filtered dataframe to a new variable dynamically
+  assign(paste0(name, "_log2"), filtered_df)
+}
+
+# Print the filtered dataframes to check
+print(sxcd_lfc_log2)
+print(adeno_lfc_log2)
+print(sbt_lfc_log2)
+print(hgsoc_lfc_log2)
+
+sxcd_lfc$log2FoldChange <- as.numeric(sxcd_lfc$log2FoldChange)
+sxcd_lfc_2 <- sxcd_lfc %>%
+  filter(log2FoldChange >= 2)
+
+
+sxcd_lfc_2 <- as.matrix(filter(sxcd_lfc, log2FoldChange >= 2))
+sxcd_lfc <- as.matrix(dplyr::select(sxcd_lfc, symbol, log2FoldChange, padj))
+adeno_lfc <- adeno %>%
+  filter(symbol %in% common_degs)%>%
+  arrange(symbol)
+adeno_lfc <- dplyr::select(adeno_lfc, symbol, log2FoldChange, padj)
+sbt_lfc <- sbt %>%
+  filter(symbol %in% common_degs)%>%
+  arrange(symbol)
+sbt_lfc <- dplyr::select(sbt_lfc, symbol, log2FoldChange, padj)
+hgsoc_lfc <- hgsoc %>%
+  filter(symbol %in% common_degs) %>%
+  arrange(symbol)
+hgsoc_lfc <- dplyr::select(hgsoc_lfc, symbol, log2FoldChange, padj)
+heatmap <- Heatmap(lfc_all$Sexcords, cluster_rows = TRUE, cluster_columns = TRUE, 
                               name = "log2CPM + c", 
                               rect_gp = gpar(col = "white", lwd = 0.25), 
                               clustering_distance_rows = "euclidean", 
                               row_names_gp = gpar(fontsize = 14), 
                               heatmap_legend_param = list(title_gp = gpar(fontsize = 14), 
-                                                          labels_gp = gpar(fontsize = 14)))                              
+                                                          labels_gp = gpar(fontsize = 14)))   
+print(heatmap)
+
 
 #heat_m_h_common <- columnAnnotation(heatmap_m_h_common, 
                                  #   col = list(SampleGroup = sample_groups), 
