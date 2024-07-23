@@ -11,6 +11,12 @@ package_load <- c("tidyverse", "DESeq2", "tibble", "dplyr", "tidyr", "readr", "s
                   "RColorBrewer", "pheatmap", "apeglm", "ashr", "annotables", "edgeR", "VennDiagram", "limma", 
                   "tools")
 lapply(package_load, require, character.only = TRUE)
+library(clusterProfiler)
+library(AnnotationDbi)
+library(org.Mm.eg.db)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(stringr)
 
 
 #############################Upload files as variables##########################
@@ -631,22 +637,33 @@ draw(heatmap_lfc)
 
 
 
-#############################VIZ TEST########################################
-sxcd_lfc <- sxcd_lfc %>%
-  arrange(log2FoldChange)
+#############################GSEA########################################
+
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("fgsea")
+install.packages("data.table")
+library(data.table)
+library(fgsea)
+
+sxcd_df <- as.data.frame(sxcd_lfc)
+sxcd_df <- sxcd_df %>%
+  mutate(symbol = str_to_title(symbol))
+sxcd_df$log2FoldChange <- as.numeric(sxcd_df$log2FoldChange)
+sxcd_df <- sxcd_df %>%
+  arrange(dplyr::desc(log2FoldChange))
+
+geneList <- sxcd_df$log2FoldChange
+names(geneList) <- sxcd_df$symbol
+geneList <- as.data.frame(geneList)
 
 min_size <- 3
 max_size <- 100
-padj_cutoff <- 0.1
+padj_cutoff <- 0.05
 
-library(clusterProfiler)
-library(AnnotationDbi)
-library(org.Mm.eg.db)
-library(org.Hs.eg.db)
-library(enrichplot)
-library(stringr)
 
-GSEA_sxcd <- gseGO(geneList = sxcd_gsea, 
+GSEA_sxcd <- gseGO(geneList = geneList, 
                    ont = "ALL", 
                    OrgDb = "org.Mm.eg.db", 
                    keyType = "SYMBOL", 
@@ -783,6 +800,8 @@ ggsave("E:/GSEA_all_graph.png", plot = GSEA_all_graph, width = 12, height = 12, 
 ridgeplot(GSEA_all)
 
 ###############################ADENO###########################################
+
+
 GO_adeno_up <- enrichGO(gene = adeno_up, OrgDb = "org.Mm.eg.db", 
                        keyType = "SYMBOL", ont = "ALL", 
                        pAdjustMethod = "fdr", 
