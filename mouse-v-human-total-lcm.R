@@ -647,20 +647,74 @@ install.packages("data.table")
 library(data.table)
 library(fgsea)
 
-sxcd_df <- as.data.frame(sxcd_lfc)
-sxcd_df <- sxcd_df %>%
-  mutate(symbol = str_to_title(symbol))
-sxcd_df$log2FoldChange <- as.numeric(sxcd_df$log2FoldChange)
-sxcd_df <- sxcd_df %>%
-  arrange(dplyr::desc(log2FoldChange))
-
-geneList <- sxcd_df$log2FoldChange
-names(geneList) <- sxcd_df$symbol
-geneList <- as.data.frame(geneList)
-
-min_size <- 3
-max_size <- 100
+#prepare variables
+min_size <- 15
+max_size <- 500
 padj_cutoff <- 0.05
+
+#prepare functions
+#prepare gmt
+#this function allows to filter gmt files by a background gene list (filtered gene list pre dedeq2)
+prepare_gmt <- function(gmt_file, genes_in_data, savefile = FALSE) {
+  gmt <- gmtPathways(gmt_file)
+  hidden <- unique(unlist(gmt))
+  mat <- matrix(NA, dimnames = list(hidden, names(gmt)), 
+                nrow = length(hidden), ncol = length(gmt))
+  for (i in 1:dim(mat)[2]){
+    mat[,i] <- as.numeric(hidden %in% gmt[[i]])
+  }
+  hidden1 <- intersect(genes_in_data, hidden)
+  mat <- mat[hidden1, colnames(mat)[which(colSums(mat[hidden1,])>5)]]
+  final_list <- matrix_to_list(mat)
+  if(savefile){
+    saveRDS(final_list, file = paste0(gsub('.gmt', '', gmt_file), '_subset_', format(Sys.time(), '%d%m'), '.RData'))
+  }
+  
+  print('Wohoo! .gmt conversion successfull!:)')
+  return(final_list)
+}
+
+
+sxcd_go <- as.data.frame(sxcd_lfc)
+sxcd_go <- sxcd_go %>%
+  mutate(symbol = str_to_title(symbol))
+sxcd_go$log2FoldChange <- as.numeric(sxcd_go$log2FoldChange)
+sxcd_go$padj <- as.numeric(sxcd_go$padj)
+sxcd_go <- sxcd_go%>%
+  arrange(dplyr::desc(log2FoldChange))
+rankings <- sign(sxcd_go$log2FoldChange)*(-log10(sxcd_go$padj))
+names(rankings) <- sxcd_go$symbol
+
+
+go_pathway <- gmtPathways("E:/paper-files/m5.go.v2023.2.Mm.symbols.gmt")
+tumour_pathway <- gmtPathways("E:/paper-files/m5.mpt.v2023.2.Mm.symbols.gmt")
+cc_pathway <- gmtPathways("E:/paper-files/m5.go.cc.v2023.2.Mm.symbols.gmt")
+
+
+mygenes_mouse <- read.csv('E:/paper-files/mlcm_total_logcpmc.csv', sep=',', header = TRUE)
+colnames(mygenes_mouse)[1] <- "ensgene"
+mygenes_mouse <- left_join(x = mygenes_mouse,
+                          y = grcm38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
+                          by = "ensgene")
+mygenes_mouse <- subset(mygenes_mouse, biotype == "protein_coding")
+mygenes_mouse <- mygenes_mouse$symbol
+
+
+# Run fgsea
+fgsea_sxcd_go <- fgsea(pathways = go_pathway, 
+                       stats = rankings ,
+                       minSize = min_size,
+                       maxSize = max_size)
+
+fgsea_sxcd_cc <- fgseaMultilevel(pathways = cc_pathway, 
+                  stats = rankings ,
+                  minSize = min_size,
+                  maxSize = max_size)
+
+fgsea_sxcd_tumour <- fgsea(pathways = tumour_pathway, 
+                    stats = sxcd_go ,
+                    minSize = min_size,
+                    maxSize = max_size)
 
 
 GSEA_sxcd <- gseGO(geneList = geneList, 
