@@ -43,21 +43,21 @@ hgsoc_up <- filter(hgsoc, log2FoldChange >= 0, biotype == "protein_coding", symb
 hgsoc_down <- filter(hgsoc, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
 
 sxcd_up <- arrange(sxcd_up, -log2FoldChange) %>%
-  select(symbol)
+  dplyr::select(symbol)
 sxcd_down <- arrange(sxcd_down, log2FoldChange) %>%
-  select(symbol)
+  dplyr::select(symbol)
 adeno_up <- arrange(adeno_up, -log2FoldChange) %>%
-  select(symbol)
+  dplyr:: select(symbol)
 adeno_down <- arrange(adeno_down, log2FoldChange) %>%
-  select(symbol)
+  dplyr::select(symbol)
 sbt_up <- arrange(sbt_up, -log2FoldChange) %>%
-  select(symbol)
+  dplyr::select(symbol)
 sbt_down <- arrange(sbt_down, log2FoldChange) %>%
-  select(symbol)
+  dplyr::select(symbol)
 hgsoc_up <- arrange(hgsoc_up, -log2FoldChange) %>%
-  select(symbol)
+  dplyr::select(symbol)
 hgsoc_down <- arrange(hgsoc_down, log2FoldChange) %>%
-  select(symbol)
+  dplyr::select(symbol)
 
 #coerce to vector
 sxcd_up <- sxcd_up$symbol
@@ -239,7 +239,6 @@ mouse_unique
 human_unique
 
 human_common <- human_common[-233,]
-
 
 mouse_exp <- mouse_common[,2:43]
 human_exp <- human_common[,2:19]
@@ -637,85 +636,6 @@ draw(heatmap_lfc)
 
 
 
-#############################GSEA########################################
-
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-
-BiocManager::install("fgsea")
-install.packages("data.table")
-library(data.table)
-library(fgsea)
-
-#prepare variables
-min_size <- 15
-max_size <- 500
-padj_cutoff <- 0.05
-
-#prepare functions
-#prepare gmt
-#this function allows to filter gmt files by a background gene list (filtered gene list pre dedeq2)
-prepare_gmt <- function(gmt_file, genes_in_data, savefile = FALSE) {
-  gmt <- gmtPathways(gmt_file)
-  hidden <- unique(unlist(gmt))
-  mat <- matrix(NA, dimnames = list(hidden, names(gmt)), 
-                nrow = length(hidden), ncol = length(gmt))
-  for (i in 1:dim(mat)[2]){
-    mat[,i] <- as.numeric(hidden %in% gmt[[i]])
-  }
-  hidden1 <- intersect(genes_in_data, hidden)
-  mat <- mat[hidden1, colnames(mat)[which(colSums(mat[hidden1,])>5)]]
-  final_list <- matrix_to_list(mat)
-  if(savefile){
-    saveRDS(final_list, file = paste0(gsub('.gmt', '', gmt_file), '_subset_', format(Sys.time(), '%d%m'), '.RData'))
-  }
-  
-  print('Wohoo! .gmt conversion successfull!:)')
-  return(final_list)
-}
-
-
-sxcd_go <- as.data.frame(sxcd_lfc)
-sxcd_go <- sxcd_go %>%
-  mutate(symbol = str_to_title(symbol))
-sxcd_go$log2FoldChange <- as.numeric(sxcd_go$log2FoldChange)
-sxcd_go$padj <- as.numeric(sxcd_go$padj)
-sxcd_go <- sxcd_go%>%
-  arrange(dplyr::desc(log2FoldChange))
-rankings <- sign(sxcd_go$log2FoldChange)*(-log10(sxcd_go$padj))
-names(rankings) <- sxcd_go$symbol
-
-
-go_pathway <- gmtPathways("E:/paper-files/m5.go.v2023.2.Mm.symbols.gmt")
-tumour_pathway <- gmtPathways("E:/paper-files/m5.mpt.v2023.2.Mm.symbols.gmt")
-cc_pathway <- gmtPathways("E:/paper-files/m5.go.cc.v2023.2.Mm.symbols.gmt")
-
-
-mygenes_mouse <- read.csv('E:/paper-files/mlcm_total_logcpmc.csv', sep=',', header = TRUE)
-colnames(mygenes_mouse)[1] <- "ensgene"
-mygenes_mouse <- left_join(x = mygenes_mouse,
-                          y = grcm38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
-                          by = "ensgene")
-mygenes_mouse <- subset(mygenes_mouse, biotype == "protein_coding")
-mygenes_mouse <- mygenes_mouse$symbol
-
-
-# Run fgsea
-fgsea_sxcd_go <- fgsea(pathways = go_pathway, 
-                       stats = rankings ,
-                       minSize = min_size,
-                       maxSize = max_size)
-
-fgsea_sxcd_cc <- fgseaMultilevel(pathways = cc_pathway, 
-                  stats = rankings ,
-                  minSize = min_size,
-                  maxSize = max_size)
-
-fgsea_sxcd_tumour <- fgsea(pathways = tumour_pathway, 
-                    stats = sxcd_go ,
-                    minSize = min_size,
-                    maxSize = max_size)
-
 
 GSEA_sxcd <- gseGO(geneList = geneList, 
                    ont = "ALL", 
@@ -853,77 +773,206 @@ ggsave("E:/GSEA_all_graph.png", plot = GSEA_all_graph, width = 12, height = 12, 
 
 ridgeplot(GSEA_all)
 
-###############################ADENO###########################################
+###############################ADENO GO###########################################
+##make background genes list with correct gene symbol case.
+logcpm_mouse_go <- read.csv('E:/paper-files/mlcm_total_logcpmc.csv', sep=',', header = TRUE)
+logcpm_human_go <- read.csv('E:/paper-files/hlcm_total_logcpmc.csv', sep=',', header = TRUE)
+
+#add gene symbols
+logcpm_mouse_go <- as.data.frame(logcpm_mouse_go)
+colnames(logcpm_mouse_go)[1] <- "ensgene"
+
+logcpm_human_go <- as.data.frame(logcpm_human_go)
+colnames(logcpm_human_go)[1] <- "ensgene"
 
 
-GO_adeno_up <- enrichGO(gene = adeno_up, OrgDb = "org.Mm.eg.db", 
+logcpm_mouse_go <- left_join(x = logcpm_mouse_go,
+                          y = grcm38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
+                          by = "ensgene")
+
+logcpm_human_go <- left_join(x = logcpm_human_go,
+                          y = grch38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
+                          by = "ensgene")
+
+
+mouse_background <- logcpm_mouse_go %>%
+  filter(biotype == "protein_coding") %>%
+  dplyr::select(symbol)
+
+human_background <- logcpm_human_go %>%
+  filter(biotype == "protein_coding") %>%
+  dplyr::select(symbol)
+
+human_background <- unique(human_background) #get rid of gene duplicates
+human_background <- human_background[human_background != ""] #get rid of blanks
+
+#get gene lists again but in correct case
+sxcd_go <- read.csv('E:/paper-files/mlcm_total_sxcd_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+adeno_go <- read.csv('E:/paper-files/mlcm_total_adeno_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+sbt_go <- read.csv('E:/paper-files/hlcm_total_SBT_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+hgsoc_go <- read.csv('E:/paper-files/hlcm_total_HGSOC_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+
+#filter each dataset for mRNAs
+sxcd_go_up <- filter(sxcd_go, log2FoldChange >= 0, biotype == "protein_coding", symbol != "")
+sxcd_go_down <- filter(sxcd_go, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
+adeno_go_up <- filter(adeno_go, log2FoldChange >= 0, biotype == "protein_coding", symbol != "")
+adeno_go_down <- filter(adeno_go, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
+sbt_go_up <- filter(sbt_go, log2FoldChange >= 0, biotype == "protein_coding", symbol != "")
+sbt_go_down <- filter(sbt_go, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
+hgsoc_go_up <- filter(hgsoc_go, log2FoldChange >= 0, biotype == "protein_coding", symbol != "")
+hgsoc_go_down <- filter(hgsoc_go, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
+
+sxcd_go_up <- sxcd_go_up$symbol
+sxcd_go_down <- sxcd_go_down$symbol
+adeno_go_up <- adeno_go_up$symbol
+adeno_go_down <- adeno_go_down$symbol
+sbt_go_up <- sbt_go_up$symbol
+sbt_go_down <- sbt_go_down$symbol
+hgsoc_go_up <- hgsoc_go_up$symbol
+hgsoc_go_down <- hgsoc_go_down$symbol
+
+test <- write.csv(sbt_go_up, 'E:/paper-files/test_sbt_up.csv', row.names = FALSE)
+
+
+GO_adeno_up <- enrichGO(gene = adeno_go_up, OrgDb = "org.Mm.eg.db", 
                        keyType = "SYMBOL", ont = "ALL", 
                        pAdjustMethod = "fdr", 
-                       pvalueCutoff = padj_cutoff, 
-                       qvalueCutoff = qval_cutoff, 
-                       minGSSize = min_size, 
-                       maxGSSize = max_size)
+                       pvalueCutoff = 0.05, 
+                       qvalueCutoff = 0.05, 
+                       minGSSize = 15, 
+                       maxGSSize = 500, 
+                       universe = mouse_background)
+
 GO_adeno_up <- as.data.frame(GO_adeno_up)
 GO_adeno_up['direction'] = "Up"
 
-GO_adeno_down <- enrichGO(gene = adeno_down, OrgDb = "org.Mm.eg.db", 
+GO_adeno_down <- enrichGO(gene = adeno_go_down, OrgDb = "org.Mm.eg.db", 
                          keyType = "SYMBOL", ont = "ALL", 
                          pAdjustMethod = "fdr", 
-                         pvalueCutoff = padj_cutoff, 
-                         qvalueCutoff = qval_cutoff, 
-                         minGSSize = min_size, 
-                         maxGSSize = max_size)
+                         pvalueCutoff = 0.05, 
+                         qvalueCutoff = 0.05, 
+                         minGSSize = 15, 
+                         maxGSSize = 500, 
+                         universe = mouse_background)
+
 GO_adeno_down <- as.data.frame(GO_adeno_down)
 GO_adeno_down['direction'] = "Down"
 
 GO_adeno <- dplyr::bind_rows(GO_adeno_up, GO_adeno_down)
-write.csv(GO_adeno, "E:/GO_adeno.csv", row.names = TRUE)
+write.csv(GO_adeno, "E:/paper-files/GO_adeno.csv", row.names = TRUE)
+#######################################SXCD GO####################################
+
+GO_sxcd_up <- enrichGO(gene = sxcd_go_up, OrgDb = "org.Mm.eg.db", 
+                        keyType = "SYMBOL", ont = "ALL", 
+                        pAdjustMethod = "fdr", 
+                        pvalueCutoff = 0.05, 
+                        qvalueCutoff = 0.05, 
+                        minGSSize = 15, 
+                        maxGSSize = 500, 
+                        universe = mouse_background)
+
+GO_sxcd_up <- as.data.frame(GO_sxcd_up)
+GO_sxcd_up['direction'] = "Up"
+
+GO_sxcd_down <- enrichGO(gene = sxcd_go_down, OrgDb = "org.Mm.eg.db", 
+                          keyType = "SYMBOL", ont = "ALL", 
+                          pAdjustMethod = "fdr", 
+                          pvalueCutoff = 0.05, 
+                          qvalueCutoff = 0.05, 
+                          minGSSize = 15, 
+                          maxGSSize = 500, 
+                          universe = mouse_background)
+
+GO_sxcd_down <- as.data.frame(GO_sxcd_down)
+GO_sxcd_down['direction'] = "Down"
+
+GO_sxcd <- dplyr::bind_rows(GO_sxcd_up, GO_sxcd_down)
+write.csv(GO_sxcd, "E:/paper-files/GO_sxcd.csv", row.names = TRUE)
+
 ########################################HUMAN GO################################
-GO_sbt_up <- enrichGO(gene = sbt_up, OrgDb = "org.Hs.eg.db", 
+
+sbt_go_down <- unique(sbt_go_down) #duplicates in SBT_down list
+
+GO_sbt_up <- enrichGO(gene = sbt_go_up, OrgDb = "org.Hs.eg.db", 
                             keyType = "SYMBOL", ont = "ALL", 
-                            pAdjustMethod = "fdr", 
-                            pvalueCutoff = padj_cutoff, 
-                            qvalueCutoff = qval_cutoff, 
-                            minGSSize = min_size, 
-                            maxGSSize = max_size)
+                      pAdjustMethod = "fdr", 
+                      pvalueCutoff = 0.05, 
+                      qvalueCutoff = 0.05, 
+                      minGSSize = 15, 
+                      maxGSSize = 500, 
+                      universe = human_background)
+
 GO_sbt_up <- as.data.frame(GO_sbt_up)
 GO_sbt_up['direction'] = "Up"
 
-GO_sbt_down <- enrichGO(gene = sbt_down, OrgDb = "org.Hs.eg.db", 
+sbt_go_down <- sbt_go_down[sbt_go_down != "" & !is.na(sbt_go_down)]
+sbt_go_down <- unique(sbt_go_down)
+
+#for some reason the sbt_down doesn't work when ontology is set to all
+#do individually and then merge
+
+GO_sbt_down_bp <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db", 
+                           keyType = "SYMBOL", ont = "BP", 
+                           pAdjustMethod = "fdr", 
+                           pvalueCutoff = 0.05, 
+                           qvalueCutoff = 0.05, 
+                           minGSSize = 15, 
+                           maxGSSize = 500, 
+                           universe = human_background)
+GO_sbt_down_mf <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db", 
+                           keyType = "SYMBOL", ont = "MF", 
+                           pAdjustMethod = "fdr", 
+                           pvalueCutoff = 0.05, 
+                           qvalueCutoff = 0.05, 
+                           minGSSize = 15, 
+                           maxGSSize = 500, 
+                           universe = human_background)
+GO_sbt_down_cc <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db", 
+                           keyType = "SYMBOL", ont = "CC", 
+                           pAdjustMethod = "fdr", 
+                           pvalueCutoff = 0.05, 
+                           qvalueCutoff = 0.05, 
+                           minGSSize = 15, 
+                           maxGSSize = 500, 
+                           universe = human_background)
+
+GO_sbt_down_bp <- as.data.frame(GO_sbt_down_bp)
+GO_sbt_down_bp['direction'] = "Down"
+GO_sbt_down_mf <- as.data.frame(GO_sbt_down_mf)
+GO_sbt_down_mf['direction'] = "Down"
+GO_sbt_down_cc <- as.data.frame(GO_sbt_down_cc)
+GO_sbt_down_cc['direction'] = "Down"
+
+GO_sbt <- dplyr::bind_rows(GO_sbt_up, GO_sbt_down_bp, GO_sbt_down_mf, GO_sbt_down_cc)
+write.csv(GO_sxcd, "E:/paper-files/GO_sbt.csv", row.names = TRUE)
+
+GO_hgsoc_up <- enrichGO(gene = hgsoc_go_up, OrgDb = "org.Hs.eg.db", 
                        keyType = "SYMBOL", ont = "ALL", 
                        pAdjustMethod = "fdr", 
-                       pvalueCutoff = padj_cutoff, 
-                       qvalueCutoff = qval_cutoff, 
-                       minGSSize = min_size, 
-                       maxGSSize = max_size)
-GO_sbt_down <- as.data.frame(GO_sbt_down)
-GO_sbt_down['direction'] = "Down"
+                       pvalueCutoff = 0.05, 
+                       qvalueCutoff = 0.05, 
+                       minGSSize = 15, 
+                       maxGSSize = 500, 
+                       universe = human_background)
 
-GO_sbt <- dplyr::bind_rows(GO_sbt_up, GO_sbt_down)
-write.csv(GO_sxcd, "E:/GO_sbt.csv", row.names = TRUE)
-
-GO_hgsoc_up <- enrichGO(gene = hgsoc_up, OrgDb = "org.Hs.eg.db", 
-                       keyType = "SYMBOL", ont = "ALL", 
-                       pAdjustMethod = "fdr", 
-                       pvalueCutoff = padj_cutoff, 
-                       qvalueCutoff = qval_cutoff, 
-                       minGSSize = min_size, 
-                       maxGSSize = max_size)
 GO_hgsoc_up <- as.data.frame(GO_hgsoc_up)
 GO_hgsoc_up['direction'] = "Up"
 
-GO_hgsoc_down <- enrichGO(gene = hgsoc_down, OrgDb = "org.Hs.eg.db", 
-                         keyType = "SYMBOL", ont = "ALL", 
-                         pAdjustMethod = "fdr", 
-                         pvalueCutoff = padj_cutoff, 
-                         qvalueCutoff = qval_cutoff, 
-                         minGSSize = min_size, 
-                         maxGSSize = max_size)
+GO_hgsoc_down <- enrichGO(gene = hgsoc_go_down, OrgDb = "org.Hs.eg.db", 
+                        keyType = "SYMBOL", ont = "ALL", 
+                        pAdjustMethod = "fdr", 
+                        pvalueCutoff = 0.05, 
+                        qvalueCutoff = 0.05, 
+                        minGSSize = 15, 
+                        maxGSSize = 500, 
+                        universe = human_background)
+
 GO_hgsoc_down <- as.data.frame(GO_hgsoc_down)
 GO_hgsoc_down['direction'] = "Down"
 
 GO_hgsoc <- dplyr::bind_rows(GO_hgsoc_up, GO_hgsoc_down)
-write.csv(GO_hgsoc, "E:/GO_hgsoc.csv", row.names = TRUE)
+write.csv(GO_hgsoc, "E:/paper-files/GO_hgsoc.csv", row.names = TRUE)
+
 #combine all GO mouse and human into one data frame and then export
 
 GO_sxcd['group'] = "sex-cords"
@@ -936,7 +985,8 @@ GO_hgsoc['group'] = "HGSOC"
 GO_hgsoc['species'] = "human"
 
 GO_mrna <- dplyr::bind_rows(GO_sxcd, GO_adeno, GO_sbt, GO_hgsoc)
-write.csv(GO_mrna, "E:/GO_mrna.csv", row.names = TRUE)
+write.csv(GO_mrna, "E:/paper-files/GO_mrna.csv", row.names = TRUE)
+
 #plotting top 5 terms of each
 top_terms_sxcd <- GO_sxcd %>%
   arrange(direction, ONTOLOGY, p.adjust) %>%
