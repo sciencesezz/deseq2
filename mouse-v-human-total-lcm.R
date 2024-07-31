@@ -19,7 +19,7 @@ library(enrichplot)
 library(stringr)
 
 
-#############################Upload files as variables##########################
+#############################Upload files as objects##########################
 sxcd <- read.csv('E:/paper-files/mlcm_total_sxcd_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
 adeno <- read.csv('E:/paper-files/mlcm_total_adeno_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
 sbt <- read.csv('E:/paper-files/hlcm_total_SBT_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
@@ -636,8 +636,6 @@ draw(heatmap_lfc)
 
 
 
-<<<<<<< HEAD
-=======
 #############################GSEA########################################
 
 if (!require("BiocManager", quietly = TRUE))
@@ -1008,8 +1006,6 @@ write.csv(GO_sxcd, "E:/paper-files/GO_sxcd.csv", row.names = TRUE)
 
 ########################################HUMAN GO################################
 
-sbt_go_down <- unique(sbt_go_down) #duplicates in SBT_down list
-
 GO_sbt_up <- enrichGO(gene = sbt_go_up, OrgDb = "org.Hs.eg.db", 
                             keyType = "SYMBOL", ont = "ALL", 
                       pAdjustMethod = "fdr", 
@@ -1022,11 +1018,20 @@ GO_sbt_up <- enrichGO(gene = sbt_go_up, OrgDb = "org.Hs.eg.db",
 GO_sbt_up <- as.data.frame(GO_sbt_up)
 GO_sbt_up['direction'] = "Up"
 
-sbt_go_down <- sbt_go_down[sbt_go_down != "" & !is.na(sbt_go_down)]
-sbt_go_down <- unique(sbt_go_down)
+#sbt_go_down <- sbt_go_down[sbt_go_down != "" & !is.na(sbt_go_down)]
+#sbt_go_down <- unique(sbt_go_down)
 
 #for some reason the sbt_down doesn't work when ontology is set to all
 #do individually and then merge
+
+#GO_sbt_down <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db", 
+     #                 keyType = "SYMBOL", ont = "ALL", 
+      #                pAdjustMethod = "fdr", 
+       #               pvalueCutoff = 0.05, 
+        #              qvalueCutoff = 0.05, 
+         #             minGSSize = 15, 
+          #            maxGSSize = 500, 
+           #           universe = human_background)
 
 GO_sbt_down_bp <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db", 
                            keyType = "SYMBOL", ont = "BP", 
@@ -1036,6 +1041,12 @@ GO_sbt_down_bp <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db",
                            minGSSize = 15, 
                            maxGSSize = 500, 
                            universe = human_background)
+
+GO_sbt_down_bp <- as.data.frame(GO_sbt_down_bp)
+GO_sbt_down_bp <- GO_sbt_down_bp %>%
+  mutate(ONTOLOGY = "BP") %>%
+  dplyr::select(ONTOLOGY, everything())
+
 GO_sbt_down_mf <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db", 
                            keyType = "SYMBOL", ont = "MF", 
                            pAdjustMethod = "fdr", 
@@ -1044,6 +1055,12 @@ GO_sbt_down_mf <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db",
                            minGSSize = 15, 
                            maxGSSize = 500, 
                            universe = human_background)
+
+GO_sbt_down_mf <- as.data.frame(GO_sbt_down_mf)
+GO_sbt_down_mf <- GO_sbt_down_mf %>%
+  mutate(ONTOLOGY = "MF") %>%
+  dplyr::select(ONTOLOGY, everything())
+
 GO_sbt_down_cc <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db", 
                            keyType = "SYMBOL", ont = "CC", 
                            pAdjustMethod = "fdr", 
@@ -1053,6 +1070,11 @@ GO_sbt_down_cc <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db",
                            maxGSSize = 500, 
                            universe = human_background)
 
+GO_sbt_down_cc <- as.data.frame(GO_sbt_down_cc)
+GO_sbt_down_cc <- GO_sbt_down_cc %>%
+  mutate(ONTOLOGY = "CC") %>%
+  dplyr::select(ONTOLOGY, everything())
+
 GO_sbt_down_bp <- as.data.frame(GO_sbt_down_bp)
 GO_sbt_down_bp['direction'] = "Down"
 GO_sbt_down_mf <- as.data.frame(GO_sbt_down_mf)
@@ -1061,7 +1083,7 @@ GO_sbt_down_cc <- as.data.frame(GO_sbt_down_cc)
 GO_sbt_down_cc['direction'] = "Down"
 
 GO_sbt <- dplyr::bind_rows(GO_sbt_up, GO_sbt_down_bp, GO_sbt_down_mf, GO_sbt_down_cc)
-write.csv(GO_sxcd, "E:/paper-files/GO_sbt.csv", row.names = TRUE)
+write.csv(GO_sbt, "E:/paper-files/GO_sbt.csv", row.names = TRUE)
 
 GO_hgsoc_up <- enrichGO(gene = hgsoc_go_up, OrgDb = "org.Hs.eg.db", 
                        keyType = "SYMBOL", ont = "ALL", 
@@ -1103,8 +1125,432 @@ GO_hgsoc['species'] = "human"
 
 GO_mrna <- dplyr::bind_rows(GO_sxcd, GO_adeno, GO_sbt, GO_hgsoc)
 write.csv(GO_mrna, "E:/paper-files/GO_mrna.csv", row.names = TRUE)
+########################Venn intersection for each GO and Regulation Direction########
+#objects
+#GO_adeno_up, GO_adeno_down, GO_sxcd_up, GO_sxcd_down, GO_sbt_up, GO_sbt_down, GO_hgsoc_up, 
+#GO_hgsoc_down
+########################################UPREGULATED VENN######################
+############Adenoma UP
+GO_adeno_up_venn_bp <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "BP", direction == "Up", group == "adenoma")
+GO_adeno_up_venn_bp <- GO_adeno_up_venn_bp$ID
 
-#plotting top 5 terms of each
+GO_adeno_up_venn_cc <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "CC", direction == "Up", group == "adenoma")
+GO_adeno_up_venn_cc <- GO_adeno_up_venn_cc$ID
+
+GO_adeno_up_venn_mf <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "MF", direction == "Up", group == "adenoma")
+GO_adeno_up_venn_mf <- GO_adeno_up_venn_mf$ID
+
+###############Sxcd Up
+GO_sxcd_up_venn_bp <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "BP" & direction == "Up", group == "sex-cords")
+GO_sxcd_up_venn_bp <- GO_sxcd_up_venn_bp$ID
+
+GO_sxcd_up_venn_cc <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "CC" & direction == "Up", group == "sex-cords")
+GO_sxcd_up_venn_cc <- GO_sxcd_up_venn_cc$ID
+
+GO_sxcd_up_venn_mf <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "MF" & direction == "Up", group == "sex-cords")
+GO_sxcd_up_venn_mf <- GO_sxcd_up_venn_mf$ID
+###########hgsoc Up############################
+GO_hgsoc_up_venn_bp <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "BP" & direction == "Up", group == "HGSOC")
+GO_hgsoc_up_venn_bp <- GO_hgsoc_up_venn_bp$ID
+
+GO_hgsoc_up_venn_cc <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "CC" & direction == "Up", group == "HGSOC")
+GO_hgsoc_up_venn_cc <- GO_hgsoc_up_venn_cc$ID
+
+GO_hgsoc_up_venn_mf <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "MF" & direction == "Up", group == "HGSOC")
+GO_hgsoc_up_venn_mf <- GO_hgsoc_up_venn_mf$ID
+############SBT################################
+GO_sbt_up_venn_bp <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "BP" & direction == "Up", group == "SBT")
+GO_sbt_up_venn_bp <- GO_sbt_up_venn_bp$ID
+
+GO_sbt_up_venn_cc <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "CC" & direction == "Up", group == "SBT")
+GO_sbt_up_venn_cc <- GO_sbt_up_venn_cc$ID
+
+GO_sbt_up_venn_mf <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "MF" & direction == "Up", group == "SBT")
+GO_sbt_up_venn_mf <- GO_sbt_up_venn_mf$ID
+
+up_bp <- list(Sexcords = GO_sxcd_up_venn_bp, 
+              SBT = GO_sbt_up_venn_bp, 
+              Adenoma = GO_adeno_up_venn_bp, 
+              HGSOC = GO_hgsoc_up_venn_bp)
+
+venn_up_bp <- venn.diagram(x = up_bp,
+                           category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
+                           filename = "E:/paper-files/images/go_bp_venn_up_mh_id.tiff",
+                           disable.logging = FALSE, 
+                           imagetype = "tiff", 
+                           main = "Mouse versus Human - Biological Processes", 
+                           main.fontface = "bold", 
+                           sub = "Upregulated DEGs", 
+                           col = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           alpha = 0.3, 
+                           fontfamily = "sans", 
+                           resolution = 600, 
+                           width = 6, 
+                           height = 6, 
+                           units = "in", 
+                           sub.fontface = "bold", 
+                           cat.fontfamily = "sans", 
+                           cat.fontface = "bold", 
+                           cex = 2,
+                           cat.cex = 1.5)
+
+up_cc <- list(Sexcords = GO_sxcd_up_venn_cc, 
+              SBT = GO_sbt_up_venn_cc, 
+              Adenoma = GO_adeno_up_venn_cc, 
+              HGSOC = GO_hgsoc_up_venn_cc)
+
+venn_up_cc <- venn.diagram(x = up_cc,
+                           category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
+                           filename = "E:/paper-files/images/go_cc_venn_up_mh_id.tiff",
+                           disable.logging = FALSE, 
+                           imagetype = "tiff", 
+                           main = "Mouse versus Human - Cellular Components", 
+                           main.fontface = "bold", 
+                           sub = "Upregulated DEGs", 
+                           col = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           alpha = 0.3, 
+                           fontfamily = "sans", 
+                           resolution = 600, 
+                           width = 6, 
+                           height = 6, 
+                           units = "in", 
+                           sub.fontface = "bold", 
+                           cat.fontfamily = "sans", 
+                           cat.fontface = "bold", 
+                           cex = 2,
+                           cat.cex = 1.5)
+
+up_mf <- list(Sexcords = GO_sxcd_up_venn_mf, 
+              SBT = GO_sbt_up_venn_mf, 
+              Adenoma = GO_adeno_up_venn_mf, 
+              HGSOC = GO_hgsoc_up_venn_mf)
+
+venn_up_mf <- venn.diagram(x = up_mf,
+                           category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
+                           filename = "E:/paper-files/images/go_mf_venn_up_mh_id.tiff",
+                           disable.logging = FALSE, 
+                           imagetype = "tiff", 
+                           main = "Mouse versus Human - Molecular Functions", 
+                           main.fontface = "bold", 
+                           sub = "Upregulated DEGs", 
+                           col = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           alpha = 0.3, 
+                           fontfamily = "sans", 
+                           resolution = 600, 
+                           width = 6, 
+                           height = 6, 
+                           units = "in", 
+                           sub.fontface = "bold", 
+                           cat.fontfamily = "sans", 
+                           cat.fontface = "bold", 
+                           cex = 2,
+                           cat.cex = 1.5)
+
+##############################DOWNREGULATED VENN###############################
+############Adenoma down
+GO_adeno_down_venn_bp <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "BP", direction == "Down", group == "adenoma")
+GO_adeno_down_venn_bp <- GO_adeno_down_venn_bp$ID
+
+GO_adeno_down_venn_cc <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "CC", direction == "Down", group == "adenoma")
+GO_adeno_down_venn_cc <- GO_adeno_down_venn_cc$ID
+
+GO_adeno_down_venn_mf <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "MF", direction == "Down", group == "adenoma")
+GO_adeno_down_venn_mf <- GO_adeno_down_venn_mf$ID
+
+###############Sxcd down
+GO_sxcd_down_venn_bp <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "BP" & direction == "Down", group == "sex-cords")
+GO_sxcd_down_venn_bp <- GO_sxcd_down_venn_bp$ID
+
+GO_sxcd_down_venn_cc <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "CC" & direction == "Down", group == "sex-cords")
+GO_sxcd_down_venn_cc <- GO_sxcd_down_venn_cc$ID
+
+GO_sxcd_down_venn_mf <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "MF" & direction == "Down", group == "sex-cords")
+GO_sxcd_down_venn_mf <- GO_sxcd_down_venn_mf$ID
+###########hgsoc down############################
+GO_hgsoc_down_venn_bp <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "BP" & direction == "Down", group == "HGSOC")
+GO_hgsoc_down_venn_bp <- GO_hgsoc_down_venn_bp$ID
+
+GO_hgsoc_down_venn_cc <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "CC" & direction == "Down", group == "HGSOC")
+GO_hgsoc_down_venn_cc <- GO_hgsoc_down_venn_cc$ID
+
+GO_hgsoc_down_venn_mf <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "MF" & direction == "Down", group == "HGSOC")
+GO_hgsoc_down_venn_mf <- GO_hgsoc_down_venn_mf$ID
+############SBT################################
+GO_sbt_down_venn_bp <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "BP" & direction == "Down", group == "SBT")
+GO_sbt_down_venn_bp <- GO_sbt_down_venn_bp$ID
+
+GO_sbt_down_venn_cc <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "CC" & direction == "Down", group == "SBT")
+GO_sbt_down_venn_cc <- GO_sbt_down_venn_cc$ID
+
+GO_sbt_down_venn_mf <- GO_mrna %>%
+  dplyr::select(ONTOLOGY, ID, direction, group) %>%
+  filter(ONTOLOGY == "MF" & direction == "Down", group == "SBT")
+GO_sbt_down_venn_mf <- GO_sbt_down_venn_mf$ID
+
+down_bp <- list(Sexcords = GO_sxcd_down_venn_bp, 
+              SBT = GO_sbt_down_venn_bp, 
+              Adenoma = GO_adeno_down_venn_bp, 
+              HGSOC = GO_hgsoc_down_venn_bp)
+
+venn_up_bp <- venn.diagram(x = down_bp,
+                           category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
+                           filename = "E:/paper-files/images/go_bp_venn_down_mh_id.tiff",
+                           disable.logging = FALSE, 
+                           imagetype = "tiff", 
+                           main = "Mouse versus Human - Biological Processes", 
+                           main.fontface = "bold", 
+                           sub = "Downregulated GO", 
+                           col = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           alpha = 0.3, 
+                           fontfamily = "sans", 
+                           resolution = 600, 
+                           width = 6, 
+                           height = 6, 
+                           units = "in", 
+                           sub.fontface = "bold", 
+                           cat.fontfamily = "sans", 
+                           cat.fontface = "bold", 
+                           cex = 2,
+                           cat.cex = 1.5)
+
+down_cc <- list(Sexcords = GO_sxcd_down_venn_cc, 
+                SBT = GO_sbt_down_venn_cc, 
+                Adenoma = GO_adeno_down_venn_cc, 
+                HGSOC = GO_hgsoc_down_venn_cc)
+
+venn_down_cc <- venn.diagram(x = down_cc,
+                           category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
+                           filename = "E:/paper-files/images/go_cc_venn_down_mh_id.tiff",
+                           disable.logging = FALSE, 
+                           imagetype = "tiff", 
+                           main = "Mouse versus Human - Cellular Components", 
+                           main.fontface = "bold", 
+                           sub = "Downregulated GO", 
+                           col = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           alpha = 0.3, 
+                           fontfamily = "sans", 
+                           resolution = 600, 
+                           width = 6, 
+                           height = 6, 
+                           units = "in", 
+                           sub.fontface = "bold", 
+                           cat.fontfamily = "sans", 
+                           cat.fontface = "bold", 
+                           cex = 2,
+                           cat.cex = 1.5)
+
+down_mf <- list(Sexcords = GO_sxcd_down_venn_mf, 
+                SBT = GO_sbt_down_venn_mf, 
+                Adenoma = GO_adeno_down_venn_mf, 
+                HGSOC = GO_hgsoc_down_venn_mf)
+
+venn_down_mf <- venn.diagram(x = down_mf,
+                             category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
+                             filename = "E:/paper-files/images/go_mf_venn_down_mh_id.tiff",
+                             disable.logging = FALSE, 
+                             imagetype = "tiff", 
+                             main = "Mouse versus Human - Molecular Functions", 
+                             main.fontface = "bold", 
+                             sub = "Downregulated GO", 
+                             col = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                             fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                             alpha = 0.3, 
+                             fontfamily = "sans", 
+                             resolution = 600, 
+                             width = 6, 
+                             height = 6, 
+                             units = "in", 
+                             sub.fontface = "bold", 
+                             cat.fontfamily = "sans", 
+                             cat.fontface = "bold", 
+                             cex = 2,
+                             cat.cex = 1.5)
+
+######################upset plots of the same thing
+install.packages("UpSetR")
+library(UpSetR)
+install.packages("ggplotify")
+library(ggplotify)
+install.packages("Cairo")
+library(Cairo)
+####sets created
+#up_bp, down_bp, up_cc, down_cc, up_mf, down_mf
+
+CairoPNG("E:/paper-files/images/up_bp_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(up_bp),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "seagreen",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "red3",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+
+CairoPNG("E:/paper-files/images/up_cc_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(up_cc),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "darkorange2",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "red3",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+
+CairoPNG("E:/paper-files/images/up_mf_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(up_mf),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "mediumpurple",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "red3",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+#####################DOWNREGULATED UPSETPLOTS
+CairoPNG("E:/paper-files/images/down_bp_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(down_bp),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "seagreen",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "royalblue4",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+
+CairoPNG("E:/paper-files/images/down_cc_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(down_cc),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "darkorange2",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "royalblue4",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+
+CairoPNG("E:/paper-files/images/down_mf_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(down_mf),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "mediumpurple",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "royalblue4",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#################################################plotting top 5 terms of each
 top_terms_sxcd <- GO_sxcd %>%
   arrange(direction, ONTOLOGY, p.adjust) %>%
   group_by(ONTOLOGY, direction) %>%
