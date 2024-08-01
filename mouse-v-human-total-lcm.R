@@ -1417,7 +1417,7 @@ venn_down_mf <- venn.diagram(x = down_mf,
                              cex = 2,
                              cat.cex = 1.5)
 
-######################upset plots of the same thing
+##########################################upset plots of the same thing##############
 install.packages("UpSetR")
 library(UpSetR)
 install.packages("ggplotify")
@@ -1535,121 +1535,441 @@ upset(
 # Close the graphics device
 dev.off()
 
+##############################TOP TERMS####################################
+#filter mRNA by only common GO terms, then filter by most genes and pvalue, qvalue
+#need to first make a dataframe of the common elements
+# Create a list of vectors
+####BIOLOGICAL PROCESSES
+vectors_list_up_bp <- list(GO_sxcd_up_venn_bp, GO_sbt_up_venn_bp, GO_adeno_up_venn_bp, GO_hgsoc_up_venn_bp)
+elements_up_bp <- calculate.overlap(vectors_list_up_bp)
+# Find the maximum length of the vectors
+max_length_up_bp <- max(sapply(elements_up_bp, length))
+# Pad the vectors with NA to make them of equal length
+padded_list_up_bp <- lapply(elements_up_bp, function(vec) {
+  length(vec) <- max_length_up_bp
+  vec
+})
+elements_up_df_bp <- data.frame(padded_list_up_bp)
+write.csv(elements_up_df_bp, file = "E:/paper-files/venn_up_df_bp.csv", 
+          row.names = FALSE)
 
+#repeat for downregulated genes
+vectors_list_down_bp <- list(GO_sxcd_down_venn_bp, GO_sbt_down_venn_bp, GO_adeno_down_venn_bp, GO_hgsoc_down_venn_bp)
+elements_down_bp <- calculate.overlap(vectors_list_down_bp)
+# Find the maximum length of the vectors
+max_length_down_bp <- max(sapply(elements_down_bp, length))
+# Pad the vectors with NA to make them of equal length
+padded_list_down_bp <- lapply(elements_down_bp, function(vec) {
+  length(vec) <- max_length_down_bp
+  vec
+})
+elements_down_df_bp <- data.frame(padded_list_down_bp)
+write.csv(elements_down_df_bp, file = "E:/paper-files/venn_down_df_bp.csv", 
+          row.names = FALSE)
 
+###CELLULAR COMPONENTS
+vectors_list_up_cc <- list(GO_sxcd_up_venn_cc, GO_sbt_up_venn_cc, GO_adeno_up_venn_cc, GO_hgsoc_up_venn_cc)
+elements_up_cc <- calculate.overlap(vectors_list_up_cc)
+# Find the maximum length of the vectors
+max_length_up_cc <- max(sapply(elements_up_cc, length))
+# Pad the vectors with NA to make them of equal length
+padded_list_up_cc <- lapply(elements_up_cc, function(vec) {
+  length(vec) <- max_length_up_cc
+  vec
+})
+elements_up_df_cc <- data.frame(padded_list_up_cc)
+write.csv(elements_up_df_cc, file = "E:/paper-files/venn_up_df_cc.csv", 
+          row.names = FALSE)
 
+#repeat for downregulated genes
+vectors_list_down_cc <- list(GO_sxcd_down_venn_cc, GO_sbt_down_venn_cc, GO_adeno_down_venn_cc, GO_hgsoc_down_venn_cc)
+elements_down_cc <- calculate.overlap(vectors_list_down_cc)
+# Find the maximum length of the vectors
+max_length_down_cc <- max(sapply(elements_down_cc, length))
+# Pad the vectors with NA to make them of equal length
+padded_list_down_cc <- lapply(elements_down_cc, function(vec) {
+  length(vec) <- max_length_down_cc
+  vec
+})
+elements_down_df_cc <- data.frame(padded_list_down_cc)
+write.csv(elements_down_df_cc, file = "E:/paper-files/venn_down_df_cc.csv", 
+          row.names = FALSE)
 
+####MOLECULAR FUNCTIONS
+vectors_list_up_mf <- list(GO_sxcd_up_venn_mf, GO_sbt_up_venn_mf, GO_adeno_up_venn_mf, GO_hgsoc_up_venn_mf)
+elements_up_mf <- calculate.overlap(vectors_list_up_mf)
+# Find the maximum length of the vectors
+max_length_up_mf <- max(sapply(elements_up_mf, length))
+# Pad the vectors with NA to make them of equal length
+padded_list_up_mf <- lapply(elements_up_mf, function(vec) {
+  length(vec) <- max_length_up_mf
+  vec
+})
+elements_up_df_mf <- data.frame(padded_list_up_mf)
+write.csv(elements_up_df_mf, file = "E:/paper-files/venn_up_df_mf.csv", 
+          row.names = FALSE)
 
+#repeat for downregulated genes
+vectors_list_down_mf <- list(GO_sxcd_down_venn_mf, GO_sbt_down_venn_mf, GO_adeno_down_venn_mf, GO_hgsoc_down_venn_mf)
+elements_down_mf <- calculate.overlap(vectors_list_down_mf)
+# Find the maximum length of the vectors
+max_length_down_mf <- max(sapply(elements_down_mf, length))
+# Pad the vectors with NA to make them of equal length
+padded_list_down_mf <- lapply(elements_down_mf, function(vec) {
+  length(vec) <- max_length_down_mf
+  vec
+})
+elements_down_df_mf <- data.frame(padded_list_down_mf)
+write.csv(elements_down_df_mf, file = "E:/paper-files/venn_down_df_mf.csv", 
+          row.names = FALSE)
 
+####filter GO_mRNA by each common list?
+common_go_bp_up  <- na.omit(elements_up_df_bp$a6) #filter for the a6 column which is the intersection
+common_go_bp_up <- c(common_go_bp_up) #concatenate into vector
+common_go_bp_down  <- na.omit(elements_down_df_bp$a6) #filter for the a6 column which is the intersection
+common_go_bp_down <- c(common_go_bp_down)
 
+common_go_cc_up  <- na.omit(elements_up_df_cc$a6) #filter for the a6 column which is the intersection
+common_go_cc_up <- c(common_go_cc_up) #concatenate into vector
+common_go_cc_down  <- na.omit(elements_down_df_cc$a6) #filter for the a6 column which is the intersection
+common_go_cc_down <- c(common_go_cc_down)
 
+common_go_mf_up  <- na.omit(elements_up_df_mf$a6) #filter for the a6 column which is the intersection
+common_go_mf_up <- c(common_go_mf_up) #concatenate into vector
+common_go_mf_down  <- na.omit(elements_down_df_mf$a6) #filter for the a6 column which is the intersection
+common_go_mf_down <- c(common_go_mf_down)
 
+common_go_up <- c(common_go_bp_up, common_go_cc_up, common_go_mf_up)
+common_go_down <- c(common_go_bp_down, common_go_cc_down, common_go_mf_down)
 
+common_go_up_df <- GO_mrna %>%
+  filter(direction == "Up", ID %in% mouse_common_go_up)
+common_go_down_df <- GO_mrna %>%
+  filter(direction == "Down", ID %in% mouse_common_go_down)
 
+common_go <- dplyr::bind_rows(common_go_up_df, common_go_down_df)
+write.csv(common_go, file = "E:/paper-files/common_go.csv", row.names = FALSE)
 
-
-
-
-#################################################plotting top 5 terms of each
-top_terms_sxcd <- GO_sxcd %>%
-  arrange(direction, ONTOLOGY, p.adjust) %>%
-  group_by(ONTOLOGY, direction) %>%
-  slice_head(n = 5)
-
-top_terms_adeno <- GO_adeno %>%
-  arrange(direction, ONTOLOGY, p.adjust) %>%
-  group_by(ONTOLOGY, direction) %>%
-  slice_head(n = 5)
-
-top_terms_sbt <- GO_sbt %>%
-  arrange(direction, ONTOLOGY, p.adjust) %>%
-  group_by(ONTOLOGY, direction) %>%
-  slice_head(n = 5)
-
-top_terms_hgsoc <- GO_hgsoc %>%
-  arrange(direction, ONTOLOGY, p.adjust) %>%
-  group_by(ONTOLOGY, direction) %>%
-  slice_head(n = 5)
-
-GO_mrna_top <- dplyr::bind_rows(top_terms_sxcd, top_terms_adeno, top_terms_sbt, top_terms_hgsoc)
+####################Visualise ALL####################
 
 ##convert gene ratio into a number i.e. calculate the ratio
 #split the character values into two parts
-split_result <- strsplit(GO_mrna$GeneRatio, "/")
-split_result2 <- strsplit(GO_mrna_top$GeneRatio, "/")
-
+split_result <- strsplit(common_go$GeneRatio, "/")
 #Convert the parts to numeric values and perform division
 GeneRatioCalc <- sapply(split_result, function(x) as.numeric(x[1]) / as.numeric(x[2]))
-GeneRatioCalc2 <- sapply(split_result2, function(x) as.numeric(x[1]) / as.numeric(x[2]))
 #add the numeric result to a new column
-GO_mrna$GeneRatioCalc <- GeneRatioCalc
-GO_mrna_top$GeneRatioCalc2 <- GeneRatioCalc2
+common_go$GeneRatioCalc <- GeneRatioCalc
 
-GO_mrna$log10_padj <- -log10(GO_mrna$p.adjust)
-GO_mrna_top$log10_padj <- -log10(GO_mrna_top$p.adjust)
-write.csv(GO_mrna, "E:/GO_mrna.csv", row.names = TRUE)
-write.csv(GO_mrna_top, "E:/GO_mrna_top.csv", row.names = TRUE)
+common_go$log10_padj <- -log10(common_go$p.adjust)
+write.csv(common_go, "E:/paper-files/common_go.csv", row.names = TRUE)
 
-GO_mrna_top_up <- filter(GO_mrna_top, direction == "Up")
-GO_mrna_top_down <- filter(GO_mrna_top, direction == "Down")
+common_go$group <- factor(common_go$group, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
+common_go$direction <- factor(common_go$direction, levels = c("Up", "Down"))
+common_go$ONTOLOGY <- factor(common_go$ONTOLOGY, levels = c("BP", "CC", "MF"))
 
-GO_mrna_top_up <- GO_mrna_top_up %>%
-  arrange(ONTOLOGY, GeneRatioCalc2)
+# Arrange the dataframe by the ontology types
+common_go <- dplyr::arrange(common_go, ONTOLOGY)
 
+# Set the final factor order for the pathways
+unique_descriptions <- unique(common_go$Description)  # Get unique descriptions
+common_go$Description <- factor(common_go$Description, levels = rev(unique_descriptions))
 
-GO_mrna_top_up$group <- factor(GO_mrna_top_up$group, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
-GO_mrna_top_down$group <- factor(GO_mrna_top_down$group, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
-GO_mrna_top$direction <- factor(GO_mrna_top$direction, levels = c("Up", "Down"))
-GO_mrna_top$group <- factor(GO_mrna_top$group, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
-
-GO_mrna_top_up_graph <- ggplot(GO_mrna_top_up, aes(x = group, y = Description)) + 
-  geom_point(aes(color = log10_padj, size = Count)) + 
+gg_common_go <- ggplot(common_go, aes(x = group, y = Description)) + 
+  geom_point(aes(color = log10_padj, size = Count, shape = direction)) + 
   facet_wrap(~ ONTOLOGY) + 
   scale_size_continuous() + 
-  scale_color_gradient(low = "green", high = "purple") + 
-  labs(x = "Group", y = "GO Term", 
-       title = "Gene Ontology Enrichment Analysis", 
-       subtitle = "Significantly Differentially Upregulated Genes (Group/Control)",
+  scale_color_gradient(low = "blue", high = "red") + 
+  labs(x = "Group", y = "Gene Ontology Term", 
+       title = "Gene Ontology Analysis", 
+       subtitle = "for Significant DEGs (Group/Control)",
        color = "-log10(p.adj)", 
        size = "Gene Count") + 
   theme_gray() +
   theme(
-    axis.text.x = element_text(angle = 90, size = 10.0, vjust = 0.5),
-    axis.text.y = element_text(size = 10.0, vjust = 0.5),
+    axis.text.x = element_text(angle = 90, size = 12.0, vjust = 0.5),
+    axis.text.y = element_text(size = 12.0, vjust = 0.5),
     axis.title.x = element_text(size = 13.0, vjust = -3.0),
     axis.title.y = element_text(size = 13.0, vjust = 3.0),
-    text = element_text(size = 10.0),
-    plot.title = element_text(vjust = +3.0, hjust = 0.5),
-    plot.margin = margin(1,1,1,1, "cm")
-    )
- 
-
-
-GO_mrna_top_up_graph
-
-ggsave("E:/GO_mrna_top_up_graph.png", plot = GO_mrna_top_up_graph, width = 12, height = 10, dpi = 600)
-
-GO_mrna_top_down_graph <- ggplot(GO_mrna_top_down, aes(x = group, y = Description)) + 
-  geom_point(aes(color = log10_padj, size = Count)) + 
-  facet_wrap(~ ONTOLOGY) + 
-  scale_size_continuous() + 
-  scale_color_gradient(low = "green", high = "purple") + 
-  labs(x = "Group", y = "GO Term", 
-       title = "Gene Ontology Enrichment Analysis", 
-       subtitle = "Significantly Differentially Downregulated Genes (Group/Control)",
-       color = "-log10(p.adj)", 
-       size = "Gene Count") + 
-  theme_gray() +
-  theme(
-    axis.text.x = element_text(angle = 90, size = 10.0, vjust = 0.5),
-    axis.text.y = element_text(size = 10.0, vjust = 0.5),
-    axis.title.x = element_text(size = 13.0, vjust = -3.0),
-    axis.title.y = element_text(size = 13.0, vjust = 3.0),
-    text = element_text(size = 10.0),
+    text = element_text(size = 14.0),
     plot.title = element_text(vjust = +3.0, hjust = 0.5),
     plot.margin = margin(1,1,1,1, "cm")
   )
 
-GO_mrna_top_down_graph
-ggsave("E:/GO_mrna_top_down_graph.png", plot = GO_mrna_top_down_graph, width = 12, height = 10, dpi = 1200)
+print(gg_common_go)
+ggsave("E:/paper-files/images/common_go.png", plot = gg_common_go, width = 12, height = 12, dpi = 800)
+ggsave("E:/paper-files/images/common_go_small.png", plot = gg_common_go, width = 12, height = 10, dpi = 300)
+#########################################KEGG##################################
+#KEGGenrich requires ENTREZ IDs
+#get gene lists again but for ENTREZ ID
+sxcd_kegg <- read.csv('E:/paper-files/mlcm_total_sxcd_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+adeno_kegg <- read.csv('E:/paper-files/mlcm_total_adeno_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+sbt_kegg <- read.csv('E:/paper-files/hlcm_total_SBT_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+hgsoc_kegg <- read.csv('E:/paper-files/hlcm_total_HGSOC_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+
+#filter each dataset for mRNAs
+sxcd_kegg_up <- filter(sxcd_kegg, log2FoldChange >= 0, biotype == "protein_coding", entrez != "")
+sxcd_kegg_down <- filter(sxcd_kegg, log2FoldChange < 0, biotype == "protein_coding", entrez != "")
+adeno_kegg_up <- filter(adeno_kegg, log2FoldChange >= 0, biotype == "protein_coding", entrez != "")
+adeno_kegg_down <- filter(adeno_kegg, log2FoldChange < 0, biotype == "protein_coding", entrez != "")
+sbt_kegg_up <- filter(sbt_kegg, log2FoldChange >= 0, biotype == "protein_coding", entrez != "")
+sbt_kegg_down <- filter(sbt_kegg, log2FoldChange < 0, biotype == "protein_coding", entrez != "")
+hgsoc_kegg_up <- filter(hgsoc_kegg, log2FoldChange >= 0, biotype == "protein_coding", entrez != "")
+hgsoc_kegg_down <- filter(hgsoc_kegg, log2FoldChange < 0, biotype == "protein_coding", entrez != "")
+
+sxcd_kegg_up <- sxcd_kegg_up$entrez
+sxcd_kegg_down <- sxcd_kegg_down$entrez
+adeno_kegg_up <- adeno_kegg_up$entrez
+adeno_kegg_down <- adeno_kegg_down$entrez
+sbt_kegg_up <- sbt_kegg_up$entrez
+sbt_kegg_down <- sbt_kegg_down$entrez
+hgsoc_kegg_up <- hgsoc_kegg_up$entrez
+hgsoc_kegg_down <- hgsoc_kegg_down$entrez
+######################################KEGG ADENO
+#make background genes in entrez ID
+#make sure the background genes are character vectors
+# e.g. mouse_background <- mouse_background$symbol
+
+mouse_background_entz <- mapIds(org.Mm.eg.db, keys = mouse_background, 
+                                column = "ENTREZID", keytype = "SYMBOL")
+mouse_background_entz <- as.character(unlist(mouse_background_entz))
+human_background_entz <- mapIds(org.Hs.eg.db, keys = human_background, 
+                                column = "ENTREZID", keytype = "SYMBOL")
+human_background_entz <- as.character(unlist(human_background_entz))
+
+KEGG_adeno_up <- enrichKEGG(
+  gene = adeno_kegg_up, 
+  organism = "mmu", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = mouse_background_entz)
+
+KEGG_adeno_up <- as.data.frame(KEGG_adeno_up)
+KEGG_adeno_up['direction'] = "Up"
+
+KEGG_adeno_down <- enrichKEGG(
+  gene = adeno_kegg_down, 
+  organism = "mmu", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = mouse_background_entz)
+
+KEGG_adeno_down <- as.data.frame(KEGG_adeno_down)
+KEGG_adeno_down['direction'] = "Down"
+
+############################SEXCORD######################KEGG#############
+KEGG_sxcd_up <- enrichKEGG(
+  gene = sxcd_kegg_up, 
+  organism = "mmu", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = mouse_background_entz)
+
+KEGG_sxcd_up <- as.data.frame(KEGG_sxcd_up)
+KEGG_sxcd_up['direction'] = "Up"
+
+KEGG_sxcd_down <- enrichKEGG(
+  gene = sxcd_kegg_down, 
+  organism = "mmu", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = mouse_background_entz)
+
+KEGG_sxcd_down <- as.data.frame(KEGG_sxcd_down)
+KEGG_sxcd_down['direction'] = "Down"
+
+############################SBT KEGG###########################
+KEGG_sbt_up <- enrichKEGG(
+  gene = sbt_kegg_up, 
+  organism = "hsa", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = human_background_entz)
+
+KEGG_sbt_up <- as.data.frame(KEGG_sbt_up)
+KEGG_sbt_up['direction'] = "Up"
+
+KEGG_sbt_down <- enrichKEGG(
+  gene = sbt_kegg_down, 
+  organism = "hsa", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = human_background_entz)
+
+KEGG_sbt_down <- as.data.frame(KEGG_sbt_down)
+KEGG_sbt_down['direction'] = "Down"
+
+###########################HGSOC KEGG######################################
+KEGG_hgsoc_up <- enrichKEGG(
+  gene = hgsoc_kegg_up, 
+  organism = "hsa", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = human_background_entz)
+
+KEGG_hgsoc_up <- as.data.frame(KEGG_hgsoc_up)
+KEGG_hgsoc_up['direction'] = "Up"
+
+KEGG_hgsoc_down <- enrichKEGG(
+  gene = hgsoc_kegg_down, 
+  organism = "hsa", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = human_background_entz)
+
+KEGG_hgsoc_down <- as.data.frame(KEGG_hgsoc_down)
+KEGG_hgsoc_down['direction'] = "Down"
+
+#combine all GO mouse and human into one data frame and then export
+KEGG_adeno_up['group'] = "adenoma"
+KEGG_adeno_up['species'] = "mouse"
+KEGG_adeno_down['group'] = "adenoma"
+KEGG_adeno_down['species'] = "mouse"
+KEGG_sxcd_up['group'] = "sex-cords"
+KEGG_sxcd_up['species'] = "mouse"
+KEGG_sxcd_down['group'] = "sex-cords"
+KEGG_sxcd_down['species'] = "mouse"
+KEGG_sbt_up['group'] = "SBT"
+KEGG_sbt_up['species'] = "human"
+KEGG_sbt_down['group'] = "SBT"
+KEGG_sbt_down['species'] = "human"
+KEGG_hgsoc_up['group'] = "HGSOC"
+KEGG_hgsoc_up['species'] = "human"
+KEGG_hgsoc_down['group'] = "HGSOC"
+KEGG_hgsoc_down['species'] = "human"
+
+KEGG_mrna <- dplyr::bind_rows(KEGG_adeno_up, KEGG_adeno_down,
+                              KEGG_sxcd_up, KEGG_sxcd_down, 
+                              KEGG_sbt_up, KEGG_sbt_down, 
+                              KEGG_hgsoc_up, KEGG_hgsoc_down)
+
+write.csv(KEGG_mrna, "E:/paper-files/KEGG_mrna.csv", row.names = TRUE)
+
+#remove mmu and hsa prefix from KEGG IDs so that I can do venn overlaps
+KEGG_mrna$ID <- gsub("^(mmu|hsa)", "", KEGG_mrna$ID)
+#-------------------------------------------
+KEGG_adeno_up_venn <- KEGG_mrna %>%
+  dplyr::select(ID, direction, group) %>%
+  filter(direction == "Up", group == "adenoma")
+KEGG_adeno_up_venn <- KEGG_adeno_up_venn$ID
+
+KEGG_adeno_down_venn <- KEGG_mrna %>%
+  dplyr::select(ID, direction, group) %>%
+  filter(direction == "Down", group == "adenoma")
+KEGG_adeno_down_venn <- KEGG_adeno_down_venn$ID
+#--------------------------------------------
+KEGG_sxcd_up_venn <- KEGG_mrna %>%
+  dplyr::select(ID, direction, group) %>%
+  filter(direction == "Up", group == "sex-cords")
+KEGG_sxcd_up_venn <- KEGG_sxcd_up_venn$ID
+
+KEGG_sxcd_down_venn <- KEGG_mrna %>%
+  dplyr::select(ID, direction, group) %>%
+  filter(direction == "Down", group == "sex-cords")
+KEGG_sxcd_down_venn <- KEGG_sxcd_down_venn$ID
+#------------------------------------------
+KEGG_sbt_up_venn <- KEGG_mrna %>%
+  dplyr::select(ID, direction, group) %>%
+  filter(direction == "Up", group == "SBT")
+KEGG_sbt_up_venn <- KEGG_sbt_up_venn$ID
+
+KEGG_sbt_down_venn <- KEGG_mrna %>%
+  dplyr::select(ID, direction, group) %>%
+  filter(direction == "Down", group == "SBT")
+KEGG_sbt_down_venn <- KEGG_sbt_down_venn$ID
+#---------------------------------------------------
+KEGG_hgsoc_up_venn <- KEGG_mrna %>%
+  dplyr::select(ID, direction, group) %>%
+  filter(direction == "Up", group == "HGSOC")
+KEGG_hgsoc_up_venn <- KEGG_hgsoc_up_venn$ID
+
+KEGG_hgsoc_down_venn <- KEGG_mrna %>%
+  dplyr::select(ID, direction, group) %>%
+  filter(direction == "Down", group == "HGSOC")
+KEGG_hgsoc_down_venn <- KEGG_hgsoc_down_venn$ID
+#---------------------------------------------------------
+up_kegg <- list(Sexcords = KEGG_sxcd_up_venn, 
+              SBT = KEGG_sbt_up_venn, 
+              Adenoma = KEGG_adeno_up_venn, 
+              HGSOC = KEGG_hgsoc_up_venn)
+
+venn_up_kegg <- venn.diagram(x = up_kegg,
+                           category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
+                           filename = "E:/paper-files/images/kegg_venn_up_mh_id.tiff",
+                           disable.logging = FALSE, 
+                           imagetype = "tiff", 
+                           main = "Mouse versus Human - KEGG Pathways", 
+                           main.fontface = "bold", 
+                           sub = "Upregulated DEGs", 
+                           col = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                           alpha = 0.3, 
+                           fontfamily = "sans", 
+                           resolution = 600, 
+                           width = 6, 
+                           height = 6, 
+                           units = "in", 
+                           sub.fontface = "bold", 
+                           cat.fontfamily = "sans", 
+                           cat.fontface = "bold", 
+                           cex = 2,
+                           cat.cex = 1.5)
+
+down_kegg <- list(Sexcords = KEGG_sxcd_down_venn, 
+                SBT = KEGG_sbt_down_venn, 
+                Adenoma = KEGG_adeno_down_venn, 
+                HGSOC = KEGG_hgsoc_down_venn)
+
+venn_down_kegg <- venn.diagram(x = down_kegg,
+                             category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
+                             filename = "E:/paper-files/images/kegg_venn_down_mh_id.tiff",
+                             disable.logging = FALSE, 
+                             imagetype = "tiff", 
+                             main = "Mouse versus Human - KEGG Pathways", 
+                             main.fontface = "bold", 
+                             sub = "Downregulated DEGs", 
+                             col = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                             fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
+                             alpha = 0.3, 
+                             fontfamily = "sans", 
+                             resolution = 600, 
+                             width = 6, 
+                             height = 6, 
+                             units = "in", 
+                             sub.fontface = "bold", 
+                             cat.fontfamily = "sans", 
+                             cat.fontface = "bold", 
+                             cex = 2,
+                             cat.cex = 1.5)
 
