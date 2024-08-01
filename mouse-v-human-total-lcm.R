@@ -1595,7 +1595,7 @@ elements_down_df_cc <- data.frame(padded_list_down_cc)
 write.csv(elements_down_df_cc, file = "E:/paper-files/venn_down_df_cc.csv", 
           row.names = FALSE)
 
-####MOLECULAR FUNCTIONS
+####-----------------------------------MOLECULAR FUNCTIONS
 vectors_list_up_mf <- list(GO_sxcd_up_venn_mf, GO_sbt_up_venn_mf, GO_adeno_up_venn_mf, GO_hgsoc_up_venn_mf)
 elements_up_mf <- calculate.overlap(vectors_list_up_mf)
 # Find the maximum length of the vectors
@@ -1972,4 +1972,79 @@ venn_down_kegg <- venn.diagram(x = down_kegg,
                              cat.fontface = "bold", 
                              cex = 2,
                              cat.cex = 1.5)
+
+CairoPNG("E:/paper-files/images/up_kegg_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(up_kegg),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "turquoise4",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "red3",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+
+CairoPNG("E:/paper-files/images/down_kegg_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(down_kegg),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "turquoise4",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "royalblue4",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+
+####-----------------------------------KEGG UP VENN ELEMENTS
+vectors_list_up_kegg <- list(KEGG_sxcd_up_venn, KEGG_adeno_up_venn, KEGG_sbt_up_venn, KEGG_hgsoc_up_venn)
+elements_up_kegg <- calculate.overlap(vectors_list_up_kegg)
+# Find the maximum length of the vectors
+max_length_up_kegg <- max(sapply(elements_up_kegg, length))
+# Pad the vectors with NA to make them of equal length
+padded_list_up_kegg <- lapply(elements_up_kegg, function(vec) {
+  length(vec) <- max_length_up_kegg
+  vec
+})
+elements_up_df_kegg <- data.frame(padded_list_up_kegg)
+write.csv(elements_up_df_kegg, file = "E:/paper-files/venn_up_df_kegg.csv", 
+          row.names = FALSE)
+
+#repeat for downregulated genes
+vectors_list_down_kegg <- list(KEGG_sxcd_down_venn, KEGG_adeno_down_venn, KEGG_sbt_down_venn, KEGG_hgsoc_down_venn)
+elements_down_kegg <- calculate.overlap(vectors_list_down_kegg)
+# Find the maximum length of the vectors
+max_length_down_kegg <- max(sapply(elements_down_kegg, length))
+# Pad the vectors with NA to make them of equal length
+padded_list_down_kegg <- lapply(elements_down_kegg, function(vec) {
+  length(vec) <- max_length_down_kegg
+  vec
+})
+elements_down_df_kegg <- data.frame(padded_list_down_kegg)
+write.csv(elements_down_df_kegg, file = "E:/paper-files/venn_down_df_kegg.csv", 
+          row.names = FALSE)
+
+#-------------------Plot KEGG
+#there are no common and not that many terms soooo plot all??
+KEGG_mrna$Description <- gsub(" - Mus musculus \\(house mouse\\)", "", KEGG_mrna$Description)
+
+top_kegg_sxcd_up_test <-  KEGG_mrna %>%
+  arrange(Count) %>%
+  group_by(group, direction) %>%
+  slice_head(n = 5)
+write.csv(top_kegg_sxcd_up_test, file = "E:/paper-files/top_kegg_sxcd_up_test.csv", 
+          row.names = FALSE)
 
