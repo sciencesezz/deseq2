@@ -42,6 +42,7 @@ sbt_down <- filter(sbt, log2FoldChange < 0, biotype == "protein_coding", symbol 
 hgsoc_up <- filter(hgsoc, log2FoldChange >= 0, biotype == "protein_coding", symbol != "")
 hgsoc_down <- filter(hgsoc, log2FoldChange < 0, biotype == "protein_coding", symbol != "")
 
+##select just mRNA symbols for venn comparison
 sxcd_up <- arrange(sxcd_up, -log2FoldChange) %>%
   dplyr::select(symbol)
 sxcd_down <- arrange(sxcd_down, log2FoldChange) %>%
@@ -59,7 +60,7 @@ hgsoc_up <- arrange(hgsoc_up, -log2FoldChange) %>%
 hgsoc_down <- arrange(hgsoc_down, log2FoldChange) %>%
   dplyr::select(symbol)
 
-#coerce to vector
+#coerce those symbol lists to vector for venn analysis
 sxcd_up <- sxcd_up$symbol
 sxcd_down <- sxcd_down$symbol
 adeno_up <- adeno_up$symbol
@@ -2041,10 +2042,337 @@ write.csv(elements_down_df_kegg, file = "E:/paper-files/venn_down_df_kegg.csv",
 #there are no common and not that many terms soooo plot all??
 KEGG_mrna$Description <- gsub(" - Mus musculus \\(house mouse\\)", "", KEGG_mrna$Description)
 
-top_kegg_sxcd_up_test <-  KEGG_mrna %>%
-  arrange(Count) %>%
+top_10_kegg <- KEGG_mrna %>%
+  arrange(group, direction, desc(Count)) %>%
   group_by(group, direction) %>%
-  slice_head(n = 5)
-write.csv(top_kegg_sxcd_up_test, file = "E:/paper-files/top_kegg_sxcd_up_test.csv", 
+  slice_head(n = 10)
+
+write.csv(top_10_kegg, file = "E:/paper-files/top_10_kegg.csv", 
           row.names = FALSE)
 
+top_5_kegg <- KEGG_mrna %>%
+  arrange(group, direction, desc(Count)) %>%
+  group_by(group, direction) %>%
+  slice_head(n = 5)
+
+top_10_kegg <- top_10_kegg %>%
+  arrange(subcategory, Description) %>%
+  mutate(Description = factor(Description, levels = unique(Description)))
+
+write.csv(top_5_kegg, file = "E:/paper-files/top_5_kegg.csv", 
+          row.names = FALSE)
+
+##convert gene ratio into a number i.e. calculate the ratio
+#split the character values into two parts
+split_result <- strsplit(top_10_kegg$GeneRatio, "/")
+#Convert the parts to numeric values and perform division
+GeneRatioCalc <- sapply(split_result, function(x) as.numeric(x[1]) / as.numeric(x[2]))
+#add the numeric result to a new column
+top_10_kegg$GeneRatioCalc <- GeneRatioCalc
+
+top_10_kegg$log10_padj <- -log10(top_10_kegg$p.adjust)
+write.csv(top_10_kegg, "E:/paper-files/top_10_kegg.csv", row.names = TRUE)
+
+top_10_kegg$group <- factor(top_10_kegg$group, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
+top_10_kegg$direction <- factor(top_10_kegg$direction, levels = c("Up", "Down"))
+
+# Arrange the dataframe by the ontology types
+#common_go <- dplyr::arrange(common_go, ONTOLOGY)
+
+# Set the final factor order for the pathways
+
+#unique_descriptions <- unique(common_go$Description)  # Get unique descriptions
+#common_go$Description <- factor(common_go$Description, levels = rev(unique_descriptions))
+
+# Wrap long facet labels
+wrapped_labeller <- labeller(subcategory = label_wrap_gen(width = 25))
+
+gg_top_10_kegg <- ggplot(top_10_kegg, aes(x = group, y = Description)) + 
+  geom_point(aes(size = Count, shape = direction, fill = log10_padj)) + 
+  facet_grid(subcategory ~ ., scales = "free_y", space = "free_y", labeller = wrapped_labeller) + 
+  scale_size_continuous() + 
+  scale_color_gradient(low = "blue", high = "red") + 
+  scale_fill_gradient(low = "blue", high = "red") +
+  scale_shape_manual(values = c("Up" = 24, "Down" = 25)) + 
+  labs(x = "Group", y = "KEGG Pathway", 
+       title = "KEGG Pathway Analysis", 
+       subtitle = "for Significant DEGs (Group/Control)",
+       fill = "-log10(p.adj)", 
+       size = "Gene Count") + 
+  theme_grey() +
+  theme(
+    axis.text.x = element_text(angle = 90, size = 18.0, vjust = 0.5),
+    axis.text.y = element_text(size = 18.0, vjust = 0.5),
+    axis.title.x = element_text(size = 18.0, vjust = -3.0),
+    axis.title.y = element_text(size = 18.0, vjust = 3.0),
+    text = element_text(size = 18.0),
+    plot.title = element_text(vjust = +3.0, hjust = 0.5),
+    plot.margin = margin(1,1,1,1, "cm"), 
+    strip.text.y = element_text(size = 17, angle = 0, hjust = 0.5)
+  )
+
+print(gg_top_10_kegg)
+ggsave("E:/paper-files/images/top_10_kegg_small.png", plot = gg_top_10_kegg, width = 16, height = 19, dpi = 800)
+
+#---------------------------KEGG overlap irrespective of Up or Down direction
+####-----------------------------------KEGG UP VENN ELEMENTS
+duplicates <- KEGG_mrna %>%
+  group_by(ID) %>%
+  filter(n() > 1) %>%
+  distinct(ID, .keep_all = TRUE)
+
+duplicates <- duplicates$ID
+
+KEGG_mrna_dups <- KEGG_mrna %>%
+  filter(ID %in% duplicates)
+
+write.csv(KEGG_mrna_dups, file = "E:/paper-files/KEGG_mrna_dups.csv", 
+          row.names = FALSE)
+
+##convert gene ratio into a number i.e. calculate the ratio
+#split the character values into two parts
+split_result <- strsplit(KEGG_mrna_dups$GeneRatio, "/")
+#Convert the parts to numeric values and perform division
+GeneRatioCalc <- sapply(split_result, function(x) as.numeric(x[1]) / as.numeric(x[2]))
+#add the numeric result to a new column
+KEGG_mrna_dups$GeneRatioCalc <- GeneRatioCalc
+
+KEGG_mrna_dups$log10_padj <- -log10(KEGG_mrna_dups$p.adjust)
+write.csv(KEGG_mrna_dups, "E:/paper-files/KEGG_mrna_dups.csv", row.names = TRUE)
+
+KEGG_mrna_dups$group <- factor(KEGG_mrna_dups$group, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
+KEGG_mrna_dups$direction <- factor(KEGG_mrna_dups$direction, levels = c("Up", "Down"))
+
+
+kegg_dups <- ggplot(KEGG_mrna_dups, aes(x = group, y = Description)) + 
+  geom_point(aes(size = Count, shape = direction, fill = log10_padj)) + 
+  facet_grid(subcategory ~ ., scales = "free_y", space = "free_y", labeller = wrapped_labeller) + 
+  scale_size_continuous() + 
+  scale_color_gradient(low = "blue", high = "red") + 
+  scale_fill_gradient(low = "blue", high = "red") +
+  scale_shape_manual(values = c("Up" = 24, "Down" = 25)) + 
+  labs(x = "Group", y = "KEGG Pathway", 
+       title = "KEGG Pathway Analysis", 
+       subtitle = "for Significant DEGs (Group/Control)",
+       fill = "-log10(p.adj)", 
+       size = "Gene Count") + 
+  theme_grey() +
+  theme(
+    axis.text.x = element_text(angle = 90, size = 18.0, vjust = 0.5),
+    axis.text.y = element_text(size = 18.0, vjust = 0.5),
+    axis.title.x = element_text(size = 18.0, vjust = -3.0),
+    axis.title.y = element_text(size = 18.0, vjust = 3.0),
+    text = element_text(size = 18.0),
+    plot.title = element_text(vjust = +3.0, hjust = 0.5),
+    plot.margin = margin(1,1,1,1, "cm"), 
+    strip.text.y = element_text(size = 14, angle = 0, hjust = 0.5)
+  )
+
+print(kegg_dups)
+ggsave("E:/paper-files/images/KEGG_mrna_dups_small.png", plot = kegg_dups, width = 16, height = 20, dpi = 200)
+
+#----------------------------------GO ENRICH COMMON DEGS------------------------
+#refresh dataset for correct symbol types
+sxcd <- read.csv('E:/paper-files/mlcm_total_sxcd_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+sbt <- read.csv('E:/paper-files/hlcm_total_SBT_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+
+#get common gene lists
+common_degs_up  <- na.omit(elements_up_df$a6) #filter for the a6 column which is the intersection
+common_degs_up <- c(common_degs_up) #concatenate into vector
+common_degs_down  <- na.omit(elements_down_df$a6) #filter for the a6 column which is the intersection
+common_degs_down <- c(common_degs_down) #concatenate into vector
+
+#get correct symbol notation 'SYMBOL' by filtering DEG dataframe
+#end up with lists of Gene case for  mouse and GENE case for human
+mouse_common_degs_up <- sxcd %>%
+  filter(casematch %in% common_degs_up)
+mouse_common_degs_up <- mouse_common_degs_up$symbol
+mouse_common_degs_up <- c(mouse_common_degs_up)
+
+mouse_common_degs_down <- sxcd %>%
+  filter(casematch %in% common_degs_down)
+mouse_common_degs_down <- mouse_common_degs_down$symbol
+mouse_common_degs_down <- c(mouse_common_degs_down)
+
+human_common_degs_up <- sbt %>%
+  filter(casematch %in% common_degs_up)
+human_common_degs_up <- human_common_degs_up$symbol
+human_common_degs_up <- c(human_common_degs_up)
+
+human_common_degs_down <- sbt %>%
+  filter(casematch %in% common_degs_down)
+human_common_degs_down <- human_common_degs_down$symbol
+human_common_degs_down <- c(human_common_degs_down)
+
+#DO GOenrich for mouse common genes, with the same background lists
+GO_mouse_up <- enrichGO(gene = mouse_common_degs_up, OrgDb = "org.Mm.eg.db", 
+                        keyType = "SYMBOL", ont = "ALL", 
+                        pAdjustMethod = "fdr", 
+                        pvalueCutoff = 0.05, 
+                        qvalueCutoff = 0.05, 
+                        minGSSize = 15, 
+                        maxGSSize = 500, 
+                        universe = mouse_background)
+
+GO_mouse_down <- enrichGO(gene = mouse_common_degs_down, OrgDb = "org.Mm.eg.db", 
+                        keyType = "SYMBOL", ont = "ALL", 
+                        pAdjustMethod = "fdr", 
+                        pvalueCutoff = 0.05, 
+                        qvalueCutoff = 0.05, 
+                        minGSSize = 15, 
+                        maxGSSize = 500, 
+                        universe = mouse_background)
+
+GO_human_up <- enrichGO(gene = human_common_degs_up, OrgDb = "org.Hs.eg.db", 
+                        keyType = "SYMBOL", ont = "ALL", 
+                        pAdjustMethod = "fdr", 
+                        pvalueCutoff = 0.05, 
+                        qvalueCutoff = 0.05, 
+                        minGSSize = 15, 
+                        maxGSSize = 500, 
+                        universe = human_background)
+
+GO_human_down <- enrichGO(gene = human_common_degs_down, OrgDb = "org.Hs.eg.db", 
+                          keyType = "SYMBOL", ont = "ALL", 
+                          pAdjustMethod = "fdr", 
+                          pvalueCutoff = 0.05, 
+                          qvalueCutoff = 0.05, 
+                          minGSSize = 15, 
+                          maxGSSize = 500, 
+                          universe = human_background)
+
+GO_mouse_up <- as.data.frame(GO_mouse_up)
+GO_mouse_up['direction'] = "Up"
+GO_mouse_up['species'] = "mouse"
+
+GO_mouse_down <- as.data.frame(GO_mouse_down)
+GO_mouse_down['direction'] = "Down"
+GO_mouse_down['species'] = "mouse"
+
+GO_human_up <- as.data.frame(GO_human_up)
+GO_human_up['direction'] = "Up"
+GO_human_up['species'] = "human"
+
+GO_human_down <- as.data.frame(GO_human_down)
+GO_human_down['direction'] = "Down"
+GO_human_down['species'] = "human"
+
+GO_common_degs <- dplyr::bind_rows(GO_mouse_up, GO_mouse_down, GO_human_up, GO_human_down)
+write.csv(GO_common_degs, "E:/paper-files/GO_common_genes.csv", row.names = TRUE)
+
+##convert gene ratio into a number i.e. calculate the ratio
+#split the character values into two parts
+split_result <- strsplit(GO_common_degs$GeneRatio, "/")
+#Convert the parts to numeric values and perform division
+GeneRatioCalc <- sapply(split_result, function(x) as.numeric(x[1]) / as.numeric(x[2]))
+#add the numeric result to a new column
+GO_common_degs$GeneRatioCalc <- GeneRatioCalc
+
+GO_common_degs$log10_padj <- -log10(GO_common_degs$p.adjust)
+write.csv(GO_common_degs, "E:/paper-files/GO_common_degs.csv", row.names = TRUE)
+
+GO_common_degs$direction <- factor(GO_common_degs$direction, levels = c("Up", "Down"))
+GO_common_degs$ONTOLOGY <- factor(GO_common_degs$ONTOLOGY, levels = c("BP", "CC", "MF"))
+GO_common_degs$species <- factor(GO_common_degs$species, levels = c("mouse", "human"))
+
+# Arrange the dataframe by the ontology types
+GO_common_degs <- dplyr::arrange(GO_common_degs, ONTOLOGY)
+
+# Set the final factor order for the pathways
+unique_descriptions <- unique(GO_common_degs$Description)  # Get unique descriptions
+GO_common_degs$Description <- factor(GO_common_degs$Description, levels = rev(unique_descriptions))
+
+#filter out terms that have 10 or more genes associated:
+GO_common_degs_10 <- GO_common_degs %>%
+  filter(Count >= 10)
+
+GO_common_degs_5 <- GO_common_degs %>%
+  filter(Count >= 5)
+
+GO_common_degs_down <- GO_common_degs %>%
+  filter(direction == "Down")
+
+
+gg_GO_common_degs <- ggplot(GO_common_degs, aes(x = species, y = Description)) + 
+  geom_point(aes(color = log10_padj, size = Count, shape = direction)) + 
+  facet_wrap(~ ONTOLOGY) + 
+  scale_size_continuous() + 
+  scale_color_gradient(low = "blue", high = "red") + 
+  labs(x = "Group", y = "Gene Ontology Term", 
+       title = "Gene Ontology Analysis", 
+       subtitle = "for Significant DEGs (Group/Control)",
+       color = "-log10(p.adj)", 
+       size = "Gene Count") + 
+  theme_gray() +
+  theme(
+    axis.text.x = element_text(angle = 90, size = 12.0, vjust = 0.5),
+    axis.text.y = element_text(size = 12.0, vjust = 0.5),
+    axis.title.x = element_text(size = 13.0, vjust = -3.0),
+    axis.title.y = element_text(size = 13.0, vjust = 3.0),
+    text = element_text(size = 14.0),
+    plot.title = element_text(vjust = +3.0, hjust = 0.5),
+    plot.margin = margin(1,1,1,1, "cm")
+  )
+
+print(gg_GO_common_degs)
+
+ggsave("E:/paper-files/images/GO_common_degs.png", plot = gg_GO_common_degs, 
+       width = 12, height = 24, dpi = 800)
+ggsave("E:/paper-files/images/GO_common_degs_small.png", plot = gg_GO_common_degs, 
+       width = 12, height = 10, dpi = 300)
+#---------------------repeat for only top 10------------------------------------
+gg_GO_common_degs_5 <- ggplot(GO_common_degs_5, aes(x = species, y = Description)) + 
+  geom_point(aes(color = log10_padj, size = Count, shape = direction)) + 
+  facet_wrap(~ ONTOLOGY) + 
+  scale_size_continuous() + 
+  scale_color_gradient(low = "blue", high = "red") + 
+  labs(x = "Group", y = "Gene Ontology Term", 
+       title = "Gene Ontology Analysis", 
+       subtitle = "for Significant DEGs (Group/Control)",
+       color = "-log10(p.adj)", 
+       size = "Gene Count") + 
+  theme_gray() +
+  theme(
+    axis.text.x = element_text(angle = 90, size = 12.0, vjust = 0.5),
+    axis.text.y = element_text(size = 12.0, vjust = 0.5),
+    axis.title.x = element_text(size = 13.0, vjust = -3.0),
+    axis.title.y = element_text(size = 13.0, vjust = 3.0),
+    text = element_text(size = 14.0),
+    plot.title = element_text(vjust = +3.0, hjust = 0.5),
+    plot.margin = margin(1,1,1,1, "cm")
+  )
+
+print(gg_GO_common_degs_5)
+
+ggsave("E:/paper-files/images/GO_common_degs_5.png", plot = gg_GO_common_degs_5, 
+       width = 12, height = 20, dpi = 800)
+ggsave("E:/paper-files/images/GO_common_degs_5_small.png", plot = gg_GO_common_degs_5, 
+       width = 10, height = 12, dpi = 300)
+
+gg_GO_common_degs_down <- ggplot(GO_common_degs_down, aes(x = species, y = Description)) + 
+  geom_point(aes(color = log10_padj, size = Count, shape = direction)) + 
+  facet_wrap(~ ONTOLOGY) + 
+  scale_size_continuous(breaks = c(3, 4)) + 
+  scale_color_gradient(low = "blue", high = "red") + 
+  labs(x = "Group", y = "Gene Ontology Term", 
+       title = "Gene Ontology Analysis", 
+       subtitle = "for Common Significant DEGs",
+       color = "-log10(p.adj)", 
+       size = "Gene Count") + 
+  theme_gray() +
+  theme(
+    axis.text.x = element_text(angle = 90, size = 12.0, vjust = 0.5),
+    axis.text.y = element_text(size = 12.0, vjust = 0.5),
+    axis.title.x = element_text(size = 13.0, vjust = -3.0),
+    axis.title.y = element_text(size = 13.0, vjust = 3.0),
+    text = element_text(size = 14.0),
+    plot.title = element_text(vjust = +3.0, hjust = 0.5),
+    plot.margin = margin(1,1,1,1, "cm")
+  )
+
+print(gg_GO_common_degs_down)
+
+ggsave("E:/paper-files/images/GO_common_degs_down.png", plot = gg_GO_common_degs_down, 
+       width = 6, height = 5, dpi = 800)
+ggsave("E:/paper-files/images/GO_common_degs_down_small.png", plot = gg_GO_common_degs_down, 
+       width = 10, height = 12, dpi = 300)
