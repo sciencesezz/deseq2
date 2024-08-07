@@ -82,7 +82,7 @@ venn_data_ordered_down <- list(Sexcords = sxcd_down,
 
 venn_up_mh <- venn.diagram(x = venn_data_ordered_up,
                              category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
-                             filename = "E:/paper-files/images/venn_up_mh.tiff",
+                             filename = "E:/paper-files/images/venn_up_mh_big.tiff",
                              disable.logging = FALSE, 
                              imagetype = "tiff", 
                              main = "Mouse versus Human", 
@@ -92,19 +92,22 @@ venn_up_mh <- venn.diagram(x = venn_data_ordered_up,
                              fill = c("palegreen1", "mediumpurple1","hotpink", "grey"), 
                              alpha = 0.3, 
                           fontfamily = "sans", 
-                          resolution = 600, 
-                          width = 6, 
-                          height = 6, 
+                          resolution = 800, 
+                          width = 8, 
+                          height = 8, 
                           units = "in", 
                           sub.fontface = "bold", 
                           cat.fontfamily = "sans", 
                           cat.fontface = "bold", 
-                          cex = 2,
-                          cat.cex = 1.5)
+                          cex = 3,
+                          cat.cex = 2.15, 
+                          bg = "transparent"
+                          )
+
 
 venn_down_mh <- venn.diagram(x = venn_data_ordered_down,
                            category.names = c("Sexcords", "SBT", "Adenoma", "HGSOC"), 
-                           filename = "E:/paper-files/images/venn_down_mh.tiff",
+                           filename = "E:/paper-files/images/venn_down_mh_big.tiff",
                            disable.logging = FALSE, 
                            imagetype = "tiff", 
                            main = "Mouse versus Human", 
@@ -114,15 +117,60 @@ venn_down_mh <- venn.diagram(x = venn_data_ordered_down,
                            fill = c("palegreen1", "mediumpurple1","hotpink", "grey"), 
                            alpha = 0.3, 
                            fontfamily = "sans", 
-                           resolution = 600, 
-                           width = 6, 
-                           height = 6, 
+                           resolution = 800, 
+                           width = 8, 
+                           height = 8, 
                            units = "in", 
                            sub.fontface = "bold", 
                            cat.fontfamily = "sans", 
                            cat.fontface = "bold", 
-                           cex = 2, 
-                           cat.cex = 1.5)
+                           cex = 3, 
+                           cat.cex = 2.15)
+
+##upset plots of common genes:
+install.packages("UpSetR")
+library(UpSetR)
+install.packages("ggplotify")
+library(ggplotify)
+install.packages("Cairo")
+library(Cairo)
+
+CairoPNG("E:/paper-files/images/upset_genes_mh_up.png", width = 8, height = 8, units = "in", res = 800, 
+         bg = "transparent")
+
+upset(
+  fromList(venn_data_ordered_up),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "mediumpurple",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "red3",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.2, 1.2, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Genes in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+
+CairoPNG("E:/paper-files/images/upset_genes_mh_down.png", width = 8, height = 8, units = "in", res = 800)
+
+upset(
+  fromList(venn_data_ordered_down),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "darkgreen",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "royalblue4",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.2, 1.2, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Genes in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
 
 # Create a list of vectors
 vectors_list_up <- list(sxcd_up, sbt_up, adeno_up, hgsoc_up)
@@ -254,7 +302,6 @@ m_h_exp <- m_h_exp[,2:61]
 
 #left with a matrix that has gene symbols in alpha order for all of the samples
 #the values of 
-
 #####################################HEATMAP####################################
 #make dataframe into matrix
 m_h_exp <- as.matrix(m_h_exp)
@@ -262,7 +309,6 @@ m_h_exp_df <- as.data.frame(m_h_exp) #this only gives each individual log2CPM va
 
 #so it looks like I filtered all the original files by the common_degs list (up and down)
 #and then included the symbol, log2FC and padj values into a matrix.
-
 ###I have to figure out what all this means....I dont remember what the heck I was up to.
 
 sxcd_lfc <- sxcd %>%
@@ -569,7 +615,7 @@ corrplot2 <- ComplexHeatmap::Heatmap(corr_value,
 
 
 
-
+sxcd_lfc <- as.data.frame(sxcd_lfc)
 
 #try heat map with logFC >= 2
 logfc_dfs <- list(sxcd_lfc = sxcd_lfc, 
@@ -636,260 +682,9 @@ draw(heatmap_m_h_common)
 draw(heatmap_lfc)
 
 
+#################################
 
-#############################GSEA########################################
-
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-
-BiocManager::install("fgsea")
-install.packages("data.table")
-library(data.table)
-library(fgsea)
-
-#prepare variables
-min_size <- 15
-max_size <- 500
-padj_cutoff <- 0.05
-
-#prepare functions
-#prepare gmt
-#this function allows to filter gmt files by a background gene list (filtered gene list pre dedeq2)
-
-## Function: Adjacency matrix to list -------------------------
-matrix_to_list <- function(pws){
-  pws.l <- list()
-  for (pw in colnames(pws)) {
-    pws.l[[pw]] <- rownames(pws)[as.logical(pws[, pw])]
-  }
-  return(pws.l)
-}
-## Function: prepare_gmt --------------------------------------
-prepare_gmt <- function(gmt_file, genes_in_data, savefile = FALSE){
-  # for debug
-  #file <- gmt_files[1]
-  #genes_in_data <- df$gene_symbol
-  
-  # Read in gmt file
-  gmt <- gmtPathways(gmt_file)
-  hidden <- unique(unlist(gmt))
-  
-  # Convert gmt file to a matrix with the genes as rows and for each go annotation (columns) the values are 0 or 1
-  mat <- matrix(NA, dimnames = list(hidden, names(gmt)),
-                nrow = length(hidden), ncol = length(gmt))
-  for (i in 1:dim(mat)[2]){
-    mat[,i] <- as.numeric(hidden %in% gmt[[i]])
-  }
-    #Subset to the genes that are present in our data to avoid bias
-  hidden1 <- intersect(genes_in_data, hidden)
-  mat <- mat[hidden1, colnames(mat)[which(colSums(mat[hidden1,])>5)]] # filter for gene sets with more than 5 genes annotated
-  # And get the list again
-  final_list <- matrix_to_list(mat) # for this we use the function we previously defined
-  
-  if(savefile){
-    saveRDS(final_list, file = paste0(gsub('.gmt', '', gmt_file), '_subset_', format(Sys.time(), '%d%m'), '.RData'))
-  }
-  
-  print('Wohoo! .gmt conversion successfull!:)')
-  return(final_list)
-}
-
-mygenes_mouse <- read.csv('E:/paper-files/mlcm_total_logcpmc.csv', sep=',', header = TRUE)
-colnames(mygenes_mouse)[1] <- "ensgene"
-mygenes_mouse <- left_join(x = mygenes_mouse,
-                           y = grcm38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
-                           by = "ensgene")
-mygenes_mouse <- subset(mygenes_mouse, biotype == "protein_coding")
-mygenes_mouse <- mygenes_mouse$symbol
-
-mygenes_humans <- read.csv('E:/paper-files/hlcm_total_logcpmc.csv', sep=',', header = TRUE)
-colnames(mygenes_humans)[1] <- "ensgene"
-mygenes_humans <- left_join(x = mygenes_humans,
-                           y = grch38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
-                           by = "ensgene")
-#get results
-write.csv(mygenes_humans, "E:/paper-files/hlcm_total_logcpmc_anno.csv", row.names = FALSE)
-
-#set up filtered gmt pathways file
-go_filtered_gmt <- prepare_gmt("E:/paper-files/m5.go.v2023.2.Mm.symbols.gmt", 
-                               mygenes_mouse, 
-                               savefile = TRUE)
-
-#get ranked gene list
-sxcd_go <- as.data.frame(sxcd_lfc)
-sxcd_go <- sxcd_go %>%
-  mutate(symbol = str_to_title(symbol))
-sxcd_go$log2FoldChange <- as.numeric(sxcd_go$log2FoldChange)
-#sxcd_go$padj <- as.numeric(sxcd_go$padj)
-sxcd_go <- sxcd_go%>%
-  arrange(dplyr::desc(log2FoldChange))
-sxcd_go <- sxcd_go[,-3]
-sxcd_go <- setNames(sxcd_go$log2FoldChange, sxcd_go$symbol)
-
-#alternative way of ranking
-#rankings <- sign(sxcd_go$log2FoldChange)*(-log10(sxcd_go$padj))
-#names(rankings) <- sxcd_go$symbol
-
-#alternative way of importing gmt files
-#go_pathway <- gmtPathways("E:/paper-files/m5.go.v2023.2.Mm.symbols.gmt")
-#tumour_pathway <- gmtPathways("E:/paper-files/m5.mpt.v2023.2.Mm.symbols.gmt")
-#cc_pathway <- gmtPathways("E:/paper-files/m5.go.cc.v2023.2.Mm.symbols.gmt")
-
-
-# Run fgsea
-fgsea_sxcd_go <- fgsea(pathways = go_filtered_gmt, 
-                       stats = sxcd_go ,
-                       minSize = min_size,
-                       maxSize = max_size, 
-                       scoreType = 'std') #both positive and negative rankings
-
-fgsea_sxcd_cc <- fgseaMultilevel(pathways = cc_pathway, 
-                  stats = rankings ,
-                  minSize = min_size,
-                  maxSize = max_size)
-
-fgsea_sxcd_tumour <- fgsea(pathways = tumour_pathway, 
-                    stats = sxcd_go ,
-                    minSize = min_size,
-                    maxSize = max_size)
-
-GSEA_sxcd <- gseGO(geneList = geneList, 
-                   ont = "ALL", 
-                   OrgDb = "org.Mm.eg.db", 
-                   keyType = "SYMBOL", 
-                   minGSSize = min_size, 
-                   maxGSSize = max_size, 
-                   pvalueCutoff = padj_cutoff, 
-                   verbose = TRUE) 
-
-GSEA_sxcd <- as.data.frame(GSEA_sxcd)
-GSEA_adeno <- as.data.frame(GSEA_adeno)
-GSEA_sbt <- as.data.frame(GSEA_sbt)
-GSEA_hgsoc <- as.data.frame(GSEA_hgsoc)
-
-GSEA_sxcd['sample'] <- "sex-cords"
-GSEA_adeno['sample'] <- "adenoma"
-GSEA_sbt['sample'] <- "SBT"
-GSEA_hgsoc['sample'] <- "HGSOC"
-
-GSEA_all<- dplyr::bind_rows(GSEA_sxcd, GSEA_adeno, GSEA_sbt, GSEA_hgsoc)
-
-write.csv(GSEA_all, "E:/GSEA_all.csv", row.names = TRUE)
-
-#filter dataframe to have descriptions that are present in all groups
-GSEA_all_filtered <- GSEA_all %>%
-  group_by(Description) %>%
-  filter(n() == 4) %>%
-  ungroup()
-
-GSEA_all_filtered$log10_padj <- -log10(GSEA_all_filtered$p.adjust)
-
-write.csv(GSEA_all_filtered, "E:/GSEA_all_filtered.csv", row.names = TRUE)
-
-GSEA_all_filtered$sample <- factor(GSEA_all_filtered$sample, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
-
-GSEA_all_filtered <- GSEA_all_filtered %>% 
-    arrange(ONTOLOGY)
-
-GSEA_all_filtered_graph <- ggplot(GSEA_all_filtered, aes(x = sample, y = Description)) + 
-  geom_point(aes(color = NES, size = log10_padj, shape = ONTOLOGY)) + 
-  #facet_wrap(~ ONTOLOGY, scales = "free_y", ncol = 1, space = "free_y") + 
-    scale_size_continuous() + 
-  scale_color_gradient(low = "blue", high = "red") + 
-  labs(x = "Group", y = "GO Term", 
-       title = "Gene Set Enrichment Analysis", 
-       subtitle = "Based on Significantly Differentially Genes (Group vs. Control)",
-       color = "NES", 
-       size = "-log10(p.adj)", 
-       shape = "Ontology") + 
-  theme_gray() +
-  theme(
-    axis.text.x = element_text(angle = 0, size = 12.0, vjust = 0.5),
-    axis.text.y = element_text(size = 12.0, vjust = 0.5),
-    axis.title.x = element_text(size = 13.0, vjust = -3.0),
-    axis.title.y = element_text(size = 13.0, vjust = 3.0),
-    text = element_text(size = 12.0),
-    plot.title = element_text(vjust = +3.0, hjust = 0.5),
-    plot.subtitle = element_text(vjust = +3.0, hjust = 0.5), 
-    plot.margin = margin(1,1,1,1, "cm")
-  )
-
-
-print(GSEA_all_filtered_graph)
-
-
-ggsave("E:/GSEA_all_filtered_graph_3.png", plot = GSEA_all_filtered_graph, width = 12, height = 12, dpi = 600)
-
-top_GSEA_sxcd <- GSEA_sxcd %>%
-  arrange(ONTOLOGY, p.adjust) %>%
-  group_by(ONTOLOGY) %>%
-  slice_head(n = 5)
-
-top_GSEA_adeno <- GSEA_adeno %>%
-  arrange(ONTOLOGY, p.adjust) %>%
-  group_by(ONTOLOGY) %>%
-  slice_head(n = 5)
-
-
-top_GSEA_sbt <- GSEA_sbt %>%
-  arrange(ONTOLOGY, p.adjust) %>%
-  group_by(ONTOLOGY) %>%
-  slice_head(n = 5)
-
-
-top_GSEA_hgsoc <- GSEA_hgsoc %>%
-  arrange(ONTOLOGY, p.adjust) %>%
-  group_by(ONTOLOGY) %>%
-  slice_head(n = 5)
-
-
-GSEA_all_top <- dplyr::bind_rows(top_GSEA_sxcd, top_GSEA_adeno, top_GSEA_sbt, top_GSEA_hgsoc)
-
-GSEA_all$log10_padj <- -log10(GSEA_all$p.adjust)
-GSEA_all$log10_padj <- -log10(GSEA_all$p.adjust)
-
-write.csv(GSEA_all, "E:/GSEA_all_top_5.csv", row.names = TRUE)
-
-GSEA_all <- GSEA_all %>% 
-  arrange(NES)
-GSEA_all <- subset(GSEA_all, ONTOLOGY != "NA")
-
-GSEA_all$sample <- factor(GSEA_all$sample, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
-
-
-print(GSEA_all)
-
-
-
-GSEA_all_graph <- ggplot(GSEA_all, aes(x = NES, y = Description)) + 
-  geom_point(aes(color = log10_padj, size = setSize, shape = sample)) + 
-  facet_wrap(~ONTOLOGY) + 
-  scale_size_continuous() + 
-  scale_color_gradient(low = "green", high = "purple") + 
-  labs(x = "Group", y = "GO Term", 
-       title = "Gene Ontology Enrichment Analysis", 
-       subtitle = "Significantly Differentially Upregulated Genes (Group/Control)",
-       color = "-log10(p.adj)", 
-       size = "Gene Count", 
-       shape = "Sample Group") + 
-  theme_gray() +
-  theme(
-    axis.text.x = element_text(angle = 45, size = 10.0, vjust = 0.5),
-    axis.text.y = element_text(size = 10.0, vjust = 0.5),
-    axis.title.x = element_text(size = 13.0, vjust = -3.0),
-    axis.title.y = element_text(size = 13.0, vjust = 3.0),
-    text = element_text(size = 10.0),
-    plot.title = element_text(vjust = +3.0, hjust = 0.5),
-    plot.margin = margin(1,1,1,1, "cm")
-  )
-
-print(GSEA_all_graph)
-
-ggsave("E:/GSEA_all_graph.png", plot = GSEA_all_graph, width = 12, height = 12, dpi = 600)
-
-ridgeplot(GSEA_all)
-
-###############################ADENO GO###########################################
+###############################ADENO GO#########################################
 ##make background genes list with correct gene symbol case.
 logcpm_mouse_go <- read.csv('E:/paper-files/mlcm_total_logcpmc.csv', sep=',', header = TRUE)
 logcpm_human_go <- read.csv('E:/paper-files/hlcm_total_logcpmc.csv', sep=',', header = TRUE)
@@ -1273,6 +1068,52 @@ venn_up_mf <- venn.diagram(x = up_mf,
                            cat.fontface = "bold", 
                            cex = 2,
                            cat.cex = 1.5)
+
+###upset plots of common genes:
+install.packages("UpSetR")
+library(UpSetR)
+install.packages("ggplotify")
+library(ggplotify)
+install.packages("Cairo")
+library(Cairo)
+####sets created
+#up_bp, down_bp, up_cc, down_cc, up_mf, down_mf
+
+CairoPNG("E:/paper-files/images/up_bp_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(up_bp),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "seagreen",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "red3",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+
+CairoPNG("E:/paper-files/images/up_cc_upset.png", width = 6, height = 6, units = "in", res = 800)
+
+upset(
+  fromList(up_cc),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "darkorange2",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "red3",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
 
 ##############################DOWNREGULATED VENN###############################
 ############Adenoma down
