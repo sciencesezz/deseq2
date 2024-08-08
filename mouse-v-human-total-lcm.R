@@ -1493,7 +1493,7 @@ print(gg_common_go)
 ggsave("E:/paper-files/images/common_go.png", plot = gg_common_go, width = 12, height = 14, dpi = 800, 
        bg = "transparent")
 ggsave("E:/paper-files/images/common_go_small.png", plot = gg_common_go, width = 12, height = 10, dpi = 300)
-#########################################KEGG##################################
+#########################################KEGG Analysis##########################
 #KEGGenrich requires ENTREZ IDs
 #get gene lists again but for ENTREZ ID
 sxcd_kegg <- read.csv('E:/paper-files/mlcm_total_sxcd_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
@@ -1519,10 +1519,11 @@ sbt_kegg_up <- sbt_kegg_up$entrez
 sbt_kegg_down <- sbt_kegg_down$entrez
 hgsoc_kegg_up <- hgsoc_kegg_up$entrez
 hgsoc_kegg_down <- hgsoc_kegg_down$entrez
-######################################KEGG ADENO
+#KEGG ADENO
 #make background genes in entrez ID
 #make sure the background genes are character vectors
-# e.g. mouse_background <- mouse_background$symbol
+mouse_background <- mouse_background$symbol
+human_background <- human_background$symbol
 
 mouse_background_entz <- mapIds(org.Mm.eg.db, keys = mouse_background, 
                                 column = "ENTREZID", keytype = "SYMBOL")
@@ -1559,7 +1560,7 @@ KEGG_adeno_down <- enrichKEGG(
 KEGG_adeno_down <- as.data.frame(KEGG_adeno_down)
 KEGG_adeno_down['direction'] = "Down"
 
-############################SEXCORD######################KEGG#############
+#SEXCORD KEGG
 KEGG_sxcd_up <- enrichKEGG(
   gene = sxcd_kegg_up, 
   organism = "mmu", 
@@ -1588,7 +1589,7 @@ KEGG_sxcd_down <- enrichKEGG(
 KEGG_sxcd_down <- as.data.frame(KEGG_sxcd_down)
 KEGG_sxcd_down['direction'] = "Down"
 
-############################SBT KEGG###########################
+#SBT KEGG
 KEGG_sbt_up <- enrichKEGG(
   gene = sbt_kegg_up, 
   organism = "hsa", 
@@ -1617,7 +1618,7 @@ KEGG_sbt_down <- enrichKEGG(
 KEGG_sbt_down <- as.data.frame(KEGG_sbt_down)
 KEGG_sbt_down['direction'] = "Down"
 
-###########################HGSOC KEGG######################################
+#HGSOC KEGG
 KEGG_hgsoc_up <- enrichKEGG(
   gene = hgsoc_kegg_up, 
   organism = "hsa", 
@@ -1647,13 +1648,13 @@ KEGG_hgsoc_down <- as.data.frame(KEGG_hgsoc_down)
 KEGG_hgsoc_down['direction'] = "Down"
 
 #combine all GO mouse and human into one data frame and then export
-KEGG_adeno_up['group'] = "adenoma"
+KEGG_adeno_up['group'] = "Adenoma"
 KEGG_adeno_up['species'] = "mouse"
-KEGG_adeno_down['group'] = "adenoma"
+KEGG_adeno_down['group'] = "Adenoma"
 KEGG_adeno_down['species'] = "mouse"
-KEGG_sxcd_up['group'] = "sex-cords"
+KEGG_sxcd_up['group'] = "Sex cords"
 KEGG_sxcd_up['species'] = "mouse"
-KEGG_sxcd_down['group'] = "sex-cords"
+KEGG_sxcd_down['group'] = "Sex cords"
 KEGG_sxcd_down['species'] = "mouse"
 KEGG_sbt_up['group'] = "SBT"
 KEGG_sbt_up['species'] = "human"
@@ -1673,27 +1674,30 @@ write.csv(KEGG_mrna, "E:/paper-files/KEGG_mrna.csv", row.names = TRUE)
 
 #remove mmu and hsa prefix from KEGG IDs so that I can do venn overlaps
 KEGG_mrna$ID <- gsub("^(mmu|hsa)", "", KEGG_mrna$ID)
-#-------------------------------------------
+#-----------------------------KEGG VENN--------------
+#adenoma KEGG Venn
 KEGG_adeno_up_venn <- KEGG_mrna %>%
   dplyr::select(ID, direction, group) %>%
-  filter(direction == "Up", group == "adenoma")
+  filter(direction == "Up", group == "Adenoma")
 KEGG_adeno_up_venn <- KEGG_adeno_up_venn$ID
 
 KEGG_adeno_down_venn <- KEGG_mrna %>%
   dplyr::select(ID, direction, group) %>%
-  filter(direction == "Down", group == "adenoma")
+  filter(direction == "Down", group == "Adenoma")
 KEGG_adeno_down_venn <- KEGG_adeno_down_venn$ID
-#--------------------------------------------
+
+##sxcd KEGG Venn
 KEGG_sxcd_up_venn <- KEGG_mrna %>%
   dplyr::select(ID, direction, group) %>%
-  filter(direction == "Up", group == "sex-cords")
+  filter(direction == "Up", group == "Sex cords")
 KEGG_sxcd_up_venn <- KEGG_sxcd_up_venn$ID
 
 KEGG_sxcd_down_venn <- KEGG_mrna %>%
   dplyr::select(ID, direction, group) %>%
-  filter(direction == "Down", group == "sex-cords")
+  filter(direction == "Down", group == "Sex cords")
 KEGG_sxcd_down_venn <- KEGG_sxcd_down_venn$ID
-#------------------------------------------
+
+##sbt KEGG Venn
 KEGG_sbt_up_venn <- KEGG_mrna %>%
   dplyr::select(ID, direction, group) %>%
   filter(direction == "Up", group == "SBT")
@@ -1703,7 +1707,8 @@ KEGG_sbt_down_venn <- KEGG_mrna %>%
   dplyr::select(ID, direction, group) %>%
   filter(direction == "Down", group == "SBT")
 KEGG_sbt_down_venn <- KEGG_sbt_down_venn$ID
-#---------------------------------------------------
+
+##hgsoc KEGG Venn
 KEGG_hgsoc_up_venn <- KEGG_mrna %>%
   dplyr::select(ID, direction, group) %>%
   filter(direction == "Up", group == "HGSOC")
@@ -1713,7 +1718,8 @@ KEGG_hgsoc_down_venn <- KEGG_mrna %>%
   dplyr::select(ID, direction, group) %>%
   filter(direction == "Down", group == "HGSOC")
 KEGG_hgsoc_down_venn <- KEGG_hgsoc_down_venn$ID
-#---------------------------------------------------------
+
+#KEGG VENN DIAGRAM VIS
 up_kegg <- list(Sexcords = KEGG_sxcd_up_venn, 
               SBT = KEGG_sbt_up_venn, 
               Adenoma = KEGG_adeno_up_venn, 
@@ -1731,14 +1737,14 @@ venn_up_kegg <- venn.diagram(x = up_kegg,
                            fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
                            alpha = 0.3, 
                            fontfamily = "sans", 
-                           resolution = 600, 
+                           resolution = 800, 
                            width = 6, 
                            height = 6, 
                            units = "in", 
                            sub.fontface = "bold", 
                            cat.fontfamily = "sans", 
                            cat.fontface = "bold", 
-                           cex = 2,
+                           cex = 3,
                            cat.cex = 1.5)
 
 down_kegg <- list(Sexcords = KEGG_sxcd_down_venn, 
@@ -1758,14 +1764,14 @@ venn_down_kegg <- venn.diagram(x = down_kegg,
                              fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
                              alpha = 0.3, 
                              fontfamily = "sans", 
-                             resolution = 600, 
+                             resolution = 800, 
                              width = 6, 
                              height = 6, 
                              units = "in", 
                              sub.fontface = "bold", 
                              cat.fontfamily = "sans", 
                              cat.fontface = "bold", 
-                             cex = 2,
+                             cex = 3,
                              cat.cex = 1.5)
 
 CairoPNG("E:/paper-files/images/up_kegg_upset.png", width = 6, height = 6, units = "in", res = 800)
@@ -1779,7 +1785,7 @@ upset(
   sets.bar.color = "gray",  # Color of the sets bar
   matrix.color = "red3",  # Color of the matrix points
   text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
-  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  sets.x.label = "No. of Pathways in Set",  # Label for sets bar
   keep.order = TRUE,  # Keep the order of sets
   empty.intersections = "on"  # Show empty intersections
 )
@@ -1797,14 +1803,14 @@ upset(
   sets.bar.color = "gray",  # Color of the sets bar
   matrix.color = "royalblue4",  # Color of the matrix points
   text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
-  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  sets.x.label = "No. of Pathways in Set",  # Label for sets bar
   keep.order = TRUE,  # Keep the order of sets
   empty.intersections = "on"  # Show empty intersections
 )
 # Close the graphics device
 dev.off()
 
-####-----------------------------------KEGG UP VENN ELEMENTS
+################################KEGG UP VENN ELEMENTS###########################
 vectors_list_up_kegg <- list(KEGG_sxcd_up_venn, KEGG_adeno_up_venn, KEGG_sbt_up_venn, KEGG_hgsoc_up_venn)
 elements_up_kegg <- calculate.overlap(vectors_list_up_kegg)
 # Find the maximum length of the vectors
@@ -1836,6 +1842,8 @@ write.csv(elements_down_df_kegg, file = "E:/paper-files/venn_down_df_kegg.csv",
 #there are no common and not that many terms soooo plot all??
 KEGG_mrna$Description <- gsub(" - Mus musculus \\(house mouse\\)", "", KEGG_mrna$Description)
 
+
+#######################PLOT KEGG - TOP########################################
 top_10_kegg <- KEGG_mrna %>%
   arrange(group, direction, desc(Count)) %>%
   group_by(group, direction) %>%
@@ -1934,36 +1942,41 @@ KEGG_mrna_dups$GeneRatioCalc <- GeneRatioCalc
 KEGG_mrna_dups$log10_padj <- -log10(KEGG_mrna_dups$p.adjust)
 write.csv(KEGG_mrna_dups, "E:/paper-files/KEGG_mrna_dups.csv", row.names = TRUE)
 
-KEGG_mrna_dups$group <- factor(KEGG_mrna_dups$group, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
+KEGG_mrna_dups$group <- factor(KEGG_mrna_dups$group, levels = c("Sex cords", "Adenoma", "SBT", "HGSOC"))
 KEGG_mrna_dups$direction <- factor(KEGG_mrna_dups$direction, levels = c("Up", "Down"))
 
+# Wrap long facet labels
+wrapped_labeller <- labeller(subcategory = label_wrap_gen(width = 25))
 
 kegg_dups <- ggplot(KEGG_mrna_dups, aes(x = group, y = Description)) + 
   geom_point(aes(size = Count, shape = direction, fill = log10_padj)) + 
-  facet_grid(subcategory ~ ., scales = "free_y", space = "free_y", labeller = wrapped_labeller) + 
+  facet_grid(subcategory ~ ., scales = "free_y", space = "free_y",  labeller = label_wrap_gen(width = 35)) + 
   scale_size_continuous() + 
   scale_color_gradient(low = "blue", high = "red") + 
   scale_fill_gradient(low = "blue", high = "red") +
   scale_shape_manual(values = c("Up" = 24, "Down" = 25)) + 
-  labs(x = "Group", y = "KEGG Pathway", 
+  labs(x = "", y = "", 
        title = "KEGG Pathway Analysis", 
        subtitle = "for Significant DEGs (Group/Control)",
        fill = "-log10(p.adj)", 
        size = "Gene Count") + 
   theme_grey() +
   theme(
-    axis.text.x = element_text(angle = 90, size = 18.0, vjust = 0.5),
+    axis.text.x = element_text(angle = 90, size = 20.0, vjust = 0.5),
     axis.text.y = element_text(size = 18.0, vjust = 0.5),
-    axis.title.x = element_text(size = 18.0, vjust = -3.0),
-    axis.title.y = element_text(size = 18.0, vjust = 3.0),
-    text = element_text(size = 18.0),
+    axis.title.x = element_text(size = 20.0, vjust = -3.0),
+    axis.title.y = element_text(size = 20.0, vjust = 3.0),
+    text = element_text(size = 16.0),
     plot.title = element_text(vjust = +3.0, hjust = 0.5),
     plot.margin = margin(1,1,1,1, "cm"), 
-    strip.text.y = element_text(size = 14, angle = 0, hjust = 0.5)
+    strip.text.y = element_text(size = 17, angle = 0, hjust = 0.5), 
+    panel.spacing.y = unit(0.2, "lines"),  
+   legend.position = "right",  legend.margin = margin(t = 5),
   )
 
 print(kegg_dups)
-ggsave("E:/paper-files/images/KEGG_mrna_dups_small.png", plot = kegg_dups, width = 16, height = 20, dpi = 200)
+ggsave("E:/paper-files/images/KEGG_mrna_dups_test.png", plot = kegg_dups, width = 16, height = 20, 
+       dpi = 800, bg = "transparent")
 
 #----------------------------------GO ENRICH COMMON DEGS------------------------
 #refresh dataset for correct symbol types
