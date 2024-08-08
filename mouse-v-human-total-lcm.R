@@ -696,7 +696,6 @@ colnames(logcpm_mouse_go)[1] <- "ensgene"
 logcpm_human_go <- as.data.frame(logcpm_human_go)
 colnames(logcpm_human_go)[1] <- "ensgene"
 
-
 logcpm_mouse_go <- left_join(x = logcpm_mouse_go,
                           y = grcm38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
                           by = "ensgene")
@@ -704,7 +703,6 @@ logcpm_mouse_go <- left_join(x = logcpm_mouse_go,
 logcpm_human_go <- left_join(x = logcpm_human_go,
                           y = grch38 [, c("ensgene", "symbol", "entrez", "biotype", "description")], 
                           by = "ensgene")
-
 
 mouse_background <- logcpm_mouse_go %>%
   filter(biotype == "protein_coding") %>%
@@ -742,8 +740,7 @@ sbt_go_down <- sbt_go_down$symbol
 hgsoc_go_up <- hgsoc_go_up$symbol
 hgsoc_go_down <- hgsoc_go_down$symbol
 
-test <- write.csv(sbt_go_up, 'E:/paper-files/test_sbt_up.csv', row.names = FALSE)
-
+#test <- write.csv(sbt_go_up, 'E:/paper-files/test_sbt_up.csv', row.names = FALSE)
 
 GO_adeno_up <- enrichGO(gene = adeno_go_up, OrgDb = "org.Mm.eg.db", 
                        keyType = "SYMBOL", ont = "ALL", 
@@ -771,8 +768,7 @@ GO_adeno_down['direction'] = "Down"
 
 GO_adeno <- dplyr::bind_rows(GO_adeno_up, GO_adeno_down)
 write.csv(GO_adeno, "E:/paper-files/GO_adeno.csv", row.names = TRUE)
-#######################################SXCD GO####################################
-
+#######################################SXCD GO##################################
 GO_sxcd_up <- enrichGO(gene = sxcd_go_up, OrgDb = "org.Mm.eg.db", 
                         keyType = "SYMBOL", ont = "ALL", 
                         pAdjustMethod = "fdr", 
@@ -800,8 +796,7 @@ GO_sxcd_down['direction'] = "Down"
 GO_sxcd <- dplyr::bind_rows(GO_sxcd_up, GO_sxcd_down)
 write.csv(GO_sxcd, "E:/paper-files/GO_sxcd.csv", row.names = TRUE)
 
-########################################HUMAN GO################################
-
+########################################SBT GO##################################
 GO_sbt_up <- enrichGO(gene = sbt_go_up, OrgDb = "org.Hs.eg.db", 
                             keyType = "SYMBOL", ont = "ALL", 
                       pAdjustMethod = "fdr", 
@@ -819,16 +814,14 @@ GO_sbt_up['direction'] = "Up"
 
 #for some reason the sbt_down doesn't work when ontology is set to all
 #do individually and then merge
-
 #GO_sbt_down <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db", 
-     #                 keyType = "SYMBOL", ont = "ALL", 
-      #                pAdjustMethod = "fdr", 
-       #               pvalueCutoff = 0.05, 
-        #              qvalueCutoff = 0.05, 
-         #             minGSSize = 15, 
-          #            maxGSSize = 500, 
-           #           universe = human_background)
-
+ #                     keyType = "SYMBOL", ont = "ALL", 
+  #                    pAdjustMethod = "fdr", 
+   #                   pvalueCutoff = 0.05, 
+    #                  qvalueCutoff = 0.05, 
+     #                 minGSSize = 15, 
+      #                maxGSSize = 500, 
+       #               universe = human_background)
 GO_sbt_down_bp <- enrichGO(gene = sbt_go_down, OrgDb = "org.Hs.eg.db", 
                            keyType = "SYMBOL", ont = "BP", 
                            pAdjustMethod = "fdr", 
@@ -881,6 +874,7 @@ GO_sbt_down_cc['direction'] = "Down"
 GO_sbt <- dplyr::bind_rows(GO_sbt_up, GO_sbt_down_bp, GO_sbt_down_mf, GO_sbt_down_cc)
 write.csv(GO_sbt, "E:/paper-files/GO_sbt.csv", row.names = TRUE)
 
+########################################HGSOC GO################################
 GO_hgsoc_up <- enrichGO(gene = hgsoc_go_up, OrgDb = "org.Hs.eg.db", 
                        keyType = "SYMBOL", ont = "ALL", 
                        pAdjustMethod = "fdr", 
@@ -910,9 +904,9 @@ write.csv(GO_hgsoc, "E:/paper-files/GO_hgsoc.csv", row.names = TRUE)
 
 #combine all GO mouse and human into one data frame and then export
 
-GO_sxcd['group'] = "sex-cords"
+GO_sxcd['group'] = "Sex cords"
 GO_sxcd['species'] = "mouse"
-GO_adeno['group'] = "adenoma"
+GO_adeno['group'] = "Adenoma"
 GO_adeno['species'] = "mouse"
 GO_sbt['group'] = "SBT"
 GO_sbt['species'] = "human"
@@ -921,43 +915,40 @@ GO_hgsoc['species'] = "human"
 
 GO_mrna <- dplyr::bind_rows(GO_sxcd, GO_adeno, GO_sbt, GO_hgsoc)
 write.csv(GO_mrna, "E:/paper-files/GO_mrna.csv", row.names = TRUE)
-########################Venn intersection for each GO and Regulation Direction########
-#objects
-#GO_adeno_up, GO_adeno_down, GO_sxcd_up, GO_sxcd_down, GO_sbt_up, GO_sbt_down, GO_hgsoc_up, 
-#GO_hgsoc_down
-########################################UPREGULATED VENN######################
-############Adenoma UP
+##################Venn intersection for each GO and Regulation Direction########
+#####################################UPREGULATED GO VENN########################
+#Adenoma UP
 GO_adeno_up_venn_bp <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "BP", direction == "Up", group == "adenoma")
+  filter(ONTOLOGY == "BP", direction == "Up", group == "Adenoma")
 GO_adeno_up_venn_bp <- GO_adeno_up_venn_bp$ID
 
 GO_adeno_up_venn_cc <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "CC", direction == "Up", group == "adenoma")
+  filter(ONTOLOGY == "CC", direction == "Up", group == "Adenoma")
 GO_adeno_up_venn_cc <- GO_adeno_up_venn_cc$ID
 
 GO_adeno_up_venn_mf <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "MF", direction == "Up", group == "adenoma")
+  filter(ONTOLOGY == "MF", direction == "Up", group == "Adenoma")
 GO_adeno_up_venn_mf <- GO_adeno_up_venn_mf$ID
 
-###############Sxcd Up
+#Sxcd Up
 GO_sxcd_up_venn_bp <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "BP" & direction == "Up", group == "sex-cords")
+  filter(ONTOLOGY == "BP" & direction == "Up", group == "Sex cords")
 GO_sxcd_up_venn_bp <- GO_sxcd_up_venn_bp$ID
 
 GO_sxcd_up_venn_cc <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "CC" & direction == "Up", group == "sex-cords")
+  filter(ONTOLOGY == "CC" & direction == "Up", group == "Sex cords")
 GO_sxcd_up_venn_cc <- GO_sxcd_up_venn_cc$ID
 
 GO_sxcd_up_venn_mf <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "MF" & direction == "Up", group == "sex-cords")
+  filter(ONTOLOGY == "MF" & direction == "Up", group == "Sex cords")
 GO_sxcd_up_venn_mf <- GO_sxcd_up_venn_mf$ID
-###########hgsoc Up############################
+#HGSOC Up
 GO_hgsoc_up_venn_bp <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
   filter(ONTOLOGY == "BP" & direction == "Up", group == "HGSOC")
@@ -972,7 +963,8 @@ GO_hgsoc_up_venn_mf <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
   filter(ONTOLOGY == "MF" & direction == "Up", group == "HGSOC")
 GO_hgsoc_up_venn_mf <- GO_hgsoc_up_venn_mf$ID
-############SBT################################
+
+#SBT
 GO_sbt_up_venn_bp <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
   filter(ONTOLOGY == "BP" & direction == "Up", group == "SBT")
@@ -1005,14 +997,14 @@ venn_up_bp <- venn.diagram(x = up_bp,
                            fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
                            alpha = 0.3, 
                            fontfamily = "sans", 
-                           resolution = 600, 
+                           resolution = 800, 
                            width = 6, 
                            height = 6, 
                            units = "in", 
                            sub.fontface = "bold", 
                            cat.fontfamily = "sans", 
                            cat.fontface = "bold", 
-                           cex = 2,
+                           cex = 3,
                            cat.cex = 1.5)
 
 up_cc <- list(Sexcords = GO_sxcd_up_venn_cc, 
@@ -1032,14 +1024,14 @@ venn_up_cc <- venn.diagram(x = up_cc,
                            fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
                            alpha = 0.3, 
                            fontfamily = "sans", 
-                           resolution = 600, 
+                           resolution = 800, 
                            width = 6, 
                            height = 6, 
                            units = "in", 
                            sub.fontface = "bold", 
                            cat.fontfamily = "sans", 
                            cat.fontface = "bold", 
-                           cex = 2,
+                           cex = 3,
                            cat.cex = 1.5)
 
 up_mf <- list(Sexcords = GO_sxcd_up_venn_mf, 
@@ -1059,27 +1051,21 @@ venn_up_mf <- venn.diagram(x = up_mf,
                            fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
                            alpha = 0.3, 
                            fontfamily = "sans", 
-                           resolution = 600, 
+                           resolution = 800, 
                            width = 6, 
                            height = 6, 
                            units = "in", 
                            sub.fontface = "bold", 
                            cat.fontfamily = "sans", 
                            cat.fontface = "bold", 
-                           cex = 2,
+                           cex = 3,
                            cat.cex = 1.5)
-
 ###upset plots of common genes:
-install.packages("UpSetR")
-library(UpSetR)
-install.packages("ggplotify")
-library(ggplotify)
-install.packages("Cairo")
-library(Cairo)
-####sets created
+##sets created
 #up_bp, down_bp, up_cc, down_cc, up_mf, down_mf
 
-CairoPNG("E:/paper-files/images/up_bp_upset.png", width = 6, height = 6, units = "in", res = 800)
+CairoPNG("E:/paper-files/images/up_bp_upset.png", width = 6, height = 6, units = "in", res = 800, 
+         bg = "transparent")
 
 upset(
   fromList(up_bp),
@@ -1089,7 +1075,7 @@ upset(
   main.bar.color = "seagreen",  # Color of the main bar
   sets.bar.color = "gray",  # Color of the sets bar
   matrix.color = "red3",  # Color of the matrix points
-  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  text.scale = c(1.8, 1.8, 1.2, 1.2, 1.8, 1.8),  # Scale of text elements
   sets.x.label = "No. of Terms in Set",  # Label for sets bar
   keep.order = TRUE,  # Keep the order of sets
   empty.intersections = "on"  # Show empty intersections
@@ -1097,8 +1083,8 @@ upset(
 # Close the graphics device
 dev.off()
 
-CairoPNG("E:/paper-files/images/up_cc_upset.png", width = 6, height = 6, units = "in", res = 800)
-
+CairoPNG("E:/paper-files/images/up_cc_upset.png", width = 6, height = 6, units = "in", res = 800, 
+         bg = "transparent")
 upset(
   fromList(up_cc),
   order.by = "freq",  # Order by frequency
@@ -1115,39 +1101,56 @@ upset(
 # Close the graphics device
 dev.off()
 
-##############################DOWNREGULATED VENN###############################
-############Adenoma down
+CairoPNG("E:/paper-files/images/up_mf_upset.png", width = 6, height = 6, units = "in", res = 800, 
+         bg = "transparent")
+upset(
+  fromList(up_mf),
+  order.by = "freq",  # Order by frequency
+  point.size = 3.5,  # Size of points in the matrix
+  line.size = 1,  # Size of lines connecting sets
+  main.bar.color = "mediumpurple",  # Color of the main bar
+  sets.bar.color = "gray",  # Color of the sets bar
+  matrix.color = "red3",  # Color of the matrix points
+  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
+  sets.x.label = "No. of Terms in Set",  # Label for sets bar
+  keep.order = TRUE,  # Keep the order of sets
+  empty.intersections = "on"  # Show empty intersections
+)
+# Close the graphics device
+dev.off()
+##############################DOWNREGULATED GO VENN#############################
+#Adenoma down
 GO_adeno_down_venn_bp <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "BP", direction == "Down", group == "adenoma")
+  filter(ONTOLOGY == "BP", direction == "Down", group == "Adenoma")
 GO_adeno_down_venn_bp <- GO_adeno_down_venn_bp$ID
 
 GO_adeno_down_venn_cc <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "CC", direction == "Down", group == "adenoma")
+  filter(ONTOLOGY == "CC", direction == "Down", group == "Adenoma")
 GO_adeno_down_venn_cc <- GO_adeno_down_venn_cc$ID
 
 GO_adeno_down_venn_mf <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "MF", direction == "Down", group == "adenoma")
+  filter(ONTOLOGY == "MF", direction == "Down", group == "Adenoma")
 GO_adeno_down_venn_mf <- GO_adeno_down_venn_mf$ID
 
-###############Sxcd down
+#Sxcd down
 GO_sxcd_down_venn_bp <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "BP" & direction == "Down", group == "sex-cords")
+  filter(ONTOLOGY == "BP" & direction == "Down", group == "Sex cords")
 GO_sxcd_down_venn_bp <- GO_sxcd_down_venn_bp$ID
 
 GO_sxcd_down_venn_cc <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "CC" & direction == "Down", group == "sex-cords")
+  filter(ONTOLOGY == "CC" & direction == "Down", group == " Sex cords")
 GO_sxcd_down_venn_cc <- GO_sxcd_down_venn_cc$ID
 
 GO_sxcd_down_venn_mf <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
-  filter(ONTOLOGY == "MF" & direction == "Down", group == "sex-cords")
+  filter(ONTOLOGY == "MF" & direction == "Down", group == "Sex cords")
 GO_sxcd_down_venn_mf <- GO_sxcd_down_venn_mf$ID
-###########hgsoc down############################
+#hgsoc down
 GO_hgsoc_down_venn_bp <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
   filter(ONTOLOGY == "BP" & direction == "Down", group == "HGSOC")
@@ -1162,7 +1165,8 @@ GO_hgsoc_down_venn_mf <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
   filter(ONTOLOGY == "MF" & direction == "Down", group == "HGSOC")
 GO_hgsoc_down_venn_mf <- GO_hgsoc_down_venn_mf$ID
-############SBT################################
+
+#SBT down
 GO_sbt_down_venn_bp <- GO_mrna %>%
   dplyr::select(ONTOLOGY, ID, direction, group) %>%
   filter(ONTOLOGY == "BP" & direction == "Down", group == "SBT")
@@ -1195,14 +1199,14 @@ venn_up_bp <- venn.diagram(x = down_bp,
                            fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
                            alpha = 0.3, 
                            fontfamily = "sans", 
-                           resolution = 600, 
+                           resolution = 800, 
                            width = 6, 
                            height = 6, 
                            units = "in", 
                            sub.fontface = "bold", 
                            cat.fontfamily = "sans", 
                            cat.fontface = "bold", 
-                           cex = 2,
+                           cex = 3,
                            cat.cex = 1.5)
 
 down_cc <- list(Sexcords = GO_sxcd_down_venn_cc, 
@@ -1222,14 +1226,14 @@ venn_down_cc <- venn.diagram(x = down_cc,
                            fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
                            alpha = 0.3, 
                            fontfamily = "sans", 
-                           resolution = 600, 
+                           resolution = 800, 
                            width = 6, 
                            height = 6, 
                            units = "in", 
                            sub.fontface = "bold", 
                            cat.fontfamily = "sans", 
                            cat.fontface = "bold", 
-                           cex = 2,
+                           cex = 3,
                            cat.cex = 1.5)
 
 down_mf <- list(Sexcords = GO_sxcd_down_venn_mf, 
@@ -1249,80 +1253,20 @@ venn_down_mf <- venn.diagram(x = down_mf,
                              fill = c("palegreen1", "mediumpurple1", "hotpink", "grey"), 
                              alpha = 0.3, 
                              fontfamily = "sans", 
-                             resolution = 600, 
+                             resolution = 800, 
                              width = 6, 
                              height = 6, 
                              units = "in", 
                              sub.fontface = "bold", 
                              cat.fontfamily = "sans", 
                              cat.fontface = "bold", 
-                             cex = 2,
+                             cex = 3,
                              cat.cex = 1.5)
 
-##########################################upset plots of the same thing##############
-install.packages("UpSetR")
-library(UpSetR)
-install.packages("ggplotify")
-library(ggplotify)
-install.packages("Cairo")
-library(Cairo)
+#upset plots of the GO down terms
 ####sets created
 #up_bp, down_bp, up_cc, down_cc, up_mf, down_mf
-
-CairoPNG("E:/paper-files/images/up_bp_upset.png", width = 6, height = 6, units = "in", res = 800)
-
-upset(
-  fromList(up_bp),
-  order.by = "freq",  # Order by frequency
-  point.size = 3.5,  # Size of points in the matrix
-  line.size = 1,  # Size of lines connecting sets
-  main.bar.color = "seagreen",  # Color of the main bar
-  sets.bar.color = "gray",  # Color of the sets bar
-  matrix.color = "red3",  # Color of the matrix points
-  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
-  sets.x.label = "No. of Terms in Set",  # Label for sets bar
-  keep.order = TRUE,  # Keep the order of sets
-  empty.intersections = "on"  # Show empty intersections
-)
-# Close the graphics device
-dev.off()
-
-CairoPNG("E:/paper-files/images/up_cc_upset.png", width = 6, height = 6, units = "in", res = 800)
-
-upset(
-  fromList(up_cc),
-  order.by = "freq",  # Order by frequency
-  point.size = 3.5,  # Size of points in the matrix
-  line.size = 1,  # Size of lines connecting sets
-  main.bar.color = "darkorange2",  # Color of the main bar
-  sets.bar.color = "gray",  # Color of the sets bar
-  matrix.color = "red3",  # Color of the matrix points
-  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
-  sets.x.label = "No. of Terms in Set",  # Label for sets bar
-  keep.order = TRUE,  # Keep the order of sets
-  empty.intersections = "on"  # Show empty intersections
-)
-# Close the graphics device
-dev.off()
-
-CairoPNG("E:/paper-files/images/up_mf_upset.png", width = 6, height = 6, units = "in", res = 800)
-
-upset(
-  fromList(up_mf),
-  order.by = "freq",  # Order by frequency
-  point.size = 3.5,  # Size of points in the matrix
-  line.size = 1,  # Size of lines connecting sets
-  main.bar.color = "mediumpurple",  # Color of the main bar
-  sets.bar.color = "gray",  # Color of the sets bar
-  matrix.color = "red3",  # Color of the matrix points
-  text.scale = c(1.8, 1.8, 1.4, 1.4, 1.8, 1.8),  # Scale of text elements
-  sets.x.label = "No. of Terms in Set",  # Label for sets bar
-  keep.order = TRUE,  # Keep the order of sets
-  empty.intersections = "on"  # Show empty intersections
-)
-# Close the graphics device
-dev.off()
-#####################DOWNREGULATED UPSETPLOTS
+#DOWNREGULATED UPSETPLOTS
 CairoPNG("E:/paper-files/images/down_bp_upset.png", width = 6, height = 6, units = "in", res = 800)
 
 upset(
@@ -1376,7 +1320,6 @@ upset(
 )
 # Close the graphics device
 dev.off()
-
 ##############################TOP TERMS####################################
 #filter mRNA by only common GO terms, then filter by most genes and pvalue, qvalue
 #need to first make a dataframe of the common elements
@@ -1485,15 +1428,14 @@ common_go_up <- c(common_go_bp_up, common_go_cc_up, common_go_mf_up)
 common_go_down <- c(common_go_bp_down, common_go_cc_down, common_go_mf_down)
 
 common_go_up_df <- GO_mrna %>%
-  filter(direction == "Up", ID %in% mouse_common_go_up)
+  filter(direction == "Up", ID %in% common_go_up)
 common_go_down_df <- GO_mrna %>%
-  filter(direction == "Down", ID %in% mouse_common_go_down)
+  filter(direction == "Down", ID %in% common_go_down)
 
 common_go <- dplyr::bind_rows(common_go_up_df, common_go_down_df)
 write.csv(common_go, file = "E:/paper-files/common_go.csv", row.names = FALSE)
 
 ####################Visualise ALL####################
-
 ##convert gene ratio into a number i.e. calculate the ratio
 #split the character values into two parts
 split_result <- strsplit(common_go$GeneRatio, "/")
@@ -1505,7 +1447,7 @@ common_go$GeneRatioCalc <- GeneRatioCalc
 common_go$log10_padj <- -log10(common_go$p.adjust)
 write.csv(common_go, "E:/paper-files/common_go.csv", row.names = TRUE)
 
-common_go$group <- factor(common_go$group, levels = c("sex-cords", "adenoma", "SBT", "HGSOC"))
+common_go$group <- factor(common_go$group, levels = c("Sex cords", "Adenoma", "SBT", "HGSOC"))
 common_go$direction <- factor(common_go$direction, levels = c("Up", "Down"))
 common_go$ONTOLOGY <- factor(common_go$ONTOLOGY, levels = c("BP", "CC", "MF"))
 
@@ -1517,28 +1459,39 @@ unique_descriptions <- unique(common_go$Description)  # Get unique descriptions
 common_go$Description <- factor(common_go$Description, levels = rev(unique_descriptions))
 
 gg_common_go <- ggplot(common_go, aes(x = group, y = Description)) + 
-  geom_point(aes(color = log10_padj, size = Count, shape = direction)) + 
+  geom_point(aes(fill = log10_padj, size = Count, shape = direction)) + 
+  scale_shape_manual(values = c("Up" = 24, "Down" = 25)) + 
+  scale_color_gradient(low = "blue", high = "red") + 
+  scale_fill_gradient(low = "blue", high = "red") +
   facet_wrap(~ ONTOLOGY) + 
   scale_size_continuous() + 
-  scale_color_gradient(low = "blue", high = "red") + 
-  labs(x = "Group", y = "Gene Ontology Term", 
-       title = "Gene Ontology Analysis", 
-       subtitle = "for Significant DEGs (Group/Control)",
-       color = "-log10(p.adj)", 
+  labs(x = "", y = "", 
+       title = "", 
+       subtitle = "",
+       color = "'-log10(p.adj)", 
        size = "Gene Count") + 
-  theme_gray() +
+  theme_grey() +
   theme(
-    axis.text.x = element_text(angle = 90, size = 12.0, vjust = 0.5),
-    axis.text.y = element_text(size = 12.0, vjust = 0.5),
-    axis.title.x = element_text(size = 13.0, vjust = -3.0),
-    axis.title.y = element_text(size = 13.0, vjust = 3.0),
-    text = element_text(size = 14.0),
+    axis.text.x = element_text(angle = 90, size = 16.0, vjust = 0.5),
+    axis.text.y = element_text(size = 16.0, vjust = 0.5),
+    axis.title.x = element_text(size = 16.0, vjust = -3.0),
+    axis.title.y = element_text(size = 16.0, vjust = 3.0),
+    text = element_text(size = 16.0),
     plot.title = element_text(vjust = +3.0, hjust = 0.5),
-    plot.margin = margin(1,1,1,1, "cm")
+    plot.margin = margin(1,1,3,1, "cm"),
+    legend.position = "bottom",
+    legend.margin = margin(t = 1),
+    strip.text = element_text(size = 16.0)
+  ) +
+  guides(
+    fill = guide_colorbar(title.position = "top", title.hjust = 0.5),
+    size = guide_legend(title.position = "top", title.hjust = 0.5),
+    shape = guide_legend(title.position = "top", title.hjust = 0.5)
   )
 
 print(gg_common_go)
-ggsave("E:/paper-files/images/common_go.png", plot = gg_common_go, width = 12, height = 12, dpi = 800)
+ggsave("E:/paper-files/images/common_go.png", plot = gg_common_go, width = 12, height = 14, dpi = 800, 
+       bg = "transparent")
 ggsave("E:/paper-files/images/common_go_small.png", plot = gg_common_go, width = 12, height = 10, dpi = 300)
 #########################################KEGG##################################
 #KEGGenrich requires ENTREZ IDs
