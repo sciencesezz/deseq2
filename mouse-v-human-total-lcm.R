@@ -682,8 +682,6 @@ draw(heatmap_m_h_common)
 draw(heatmap_lfc)
 
 
-#################################
-
 ###############################ADENO GO#########################################
 ##make background genes list with correct gene symbol case.
 logcpm_mouse_go <- read.csv('E:/paper-files/mlcm_total_logcpmc.csv', sep=',', header = TRUE)
@@ -1674,7 +1672,6 @@ write.csv(KEGG_mrna, "E:/paper-files/KEGG_mrna.csv", row.names = TRUE)
 
 #remove mmu and hsa prefix from KEGG IDs so that I can do venn overlaps
 KEGG_mrna$ID <- gsub("^(mmu|hsa)", "", KEGG_mrna$ID)
-#-----------------------------KEGG VENN--------------
 #adenoma KEGG Venn
 KEGG_adeno_up_venn <- KEGG_mrna %>%
   dplyr::select(ID, direction, group) %>%
@@ -2096,15 +2093,20 @@ GO_common_degs_10 <- GO_common_degs %>%
 GO_common_degs_5 <- GO_common_degs %>%
   filter(Count >= 5)
 
+GO_common_degs_15 <- GO_common_degs %>%
+  filter(Count >= 15)
+
 GO_common_degs_down <- GO_common_degs %>%
   filter(direction == "Down")
 
 
 gg_GO_common_degs <- ggplot(GO_common_degs, aes(x = species, y = Description)) + 
-  geom_point(aes(color = log10_padj, size = Count, shape = direction)) + 
+  geom_point(aes(fill = log10_padj, size = Count, shape = direction)) + 
   facet_wrap(~ ONTOLOGY) + 
   scale_size_continuous() + 
+  scale_shape_manual(values = c("Up" = 24, "Down" = 25)) + 
   scale_color_gradient(low = "blue", high = "red") + 
+  scale_fill_gradient(low = "blue", high = "red") +
   labs(x = "Group", y = "Gene Ontology Term", 
        title = "Gene Ontology Analysis", 
        subtitle = "for Significant DEGs (Group/Control)",
@@ -2127,13 +2129,15 @@ ggsave("E:/paper-files/images/GO_common_degs.png", plot = gg_GO_common_degs,
        width = 12, height = 24, dpi = 800)
 ggsave("E:/paper-files/images/GO_common_degs_small.png", plot = gg_GO_common_degs, 
        width = 12, height = 10, dpi = 300)
-#---------------------repeat for only top 10------------------------------------
-gg_GO_common_degs_5 <- ggplot(GO_common_degs_5, aes(x = species, y = Description)) + 
-  geom_point(aes(color = log10_padj, size = Count, shape = direction)) + 
+#---------------------repeat for only top XX------------------------------------
+gg_GO_common_degs_10 <- ggplot(GO_common_degs_10, aes(x = species, y = Description)) + 
+  geom_point(aes(fill = log10_padj, size = Count, shape = direction)) + 
   facet_wrap(~ ONTOLOGY) + 
   scale_size_continuous() + 
+  scale_shape_manual(values = c("Up" = 24, "Down" = 25)) + 
   scale_color_gradient(low = "blue", high = "red") + 
-  labs(x = "Group", y = "Gene Ontology Term", 
+  scale_fill_gradient(low = "blue", high = "red") +
+  labs(x = "Species", y = "Gene Ontology Term", 
        title = "Gene Ontology Analysis", 
        subtitle = "for Significant DEGs (Group/Control)",
        color = "-log10(p.adj)", 
@@ -2149,11 +2153,12 @@ gg_GO_common_degs_5 <- ggplot(GO_common_degs_5, aes(x = species, y = Description
     plot.margin = margin(1,1,1,1, "cm")
   )
 
-print(gg_GO_common_degs_5)
+print(gg_GO_common_degs_10)
 
-ggsave("E:/paper-files/images/GO_common_degs_5.png", plot = gg_GO_common_degs_5, 
-       width = 12, height = 20, dpi = 800)
-ggsave("E:/paper-files/images/GO_common_degs_5_small.png", plot = gg_GO_common_degs_5, 
+ggsave("E:/paper-files/images/GO_common_degs_10.png", plot = gg_GO_common_degs_10, 
+       width = 10, height = 12, dpi = 800)
+
+ggsave("E:/paper-files/images/GO_common_degs_15_small.png", plot = gg_GO_common_degs_15, 
        width = 10, height = 12, dpi = 300)
 
 gg_GO_common_degs_down <- ggplot(GO_common_degs_down, aes(x = species, y = Description)) + 
@@ -2161,6 +2166,8 @@ gg_GO_common_degs_down <- ggplot(GO_common_degs_down, aes(x = species, y = Descr
   facet_wrap(~ ONTOLOGY) + 
   scale_size_continuous(breaks = c(3, 4)) + 
   scale_color_gradient(low = "blue", high = "red") + 
+  scale_fill_gradient(low = "blue", high = "red") +
+  scale_shape_manual(values = c("Up" = 24, "Down" = 25)) + 
   labs(x = "Group", y = "Gene Ontology Term", 
        title = "Gene Ontology Analysis", 
        subtitle = "for Common Significant DEGs",
@@ -2183,3 +2190,156 @@ ggsave("E:/paper-files/images/GO_common_degs_down.png", plot = gg_GO_common_degs
        width = 6, height = 5, dpi = 800)
 ggsave("E:/paper-files/images/GO_common_degs_down_small.png", plot = gg_GO_common_degs_down, 
        width = 10, height = 12, dpi = 300)
+
+
+###################KEGG COMMON GENES##########################
+#get entrez IDs for background and gene lists
+#refresh dataset for correct symbol types
+sxcd <- read.csv('E:/paper-files/mlcm_total_sxcd_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+sbt <- read.csv('E:/paper-files/hlcm_total_SBT_v_control_deseq_xlfcshrink.csv', sep=',', header = TRUE)
+
+#get common gene lists
+common_degs_up  <- na.omit(elements_up_df$a6) #filter for the a6 column which is the intersection
+common_degs_up <- c(common_degs_up) #concatenate into vector
+common_degs_down  <- na.omit(elements_down_df$a6) #filter for the a6 column which is the intersection
+common_degs_down <- c(common_degs_down) #concatenate into vector
+
+#end up with lists of Gene case for  mouse and GENE case for human
+mouse_common_degs_up_entz <- sxcd %>%
+  filter(casematch %in% common_degs_up)
+mouse_common_degs_up_entz <- mouse_common_degs_up_entz$entrez
+mouse_common_degs_up_entz <- c(mouse_common_degs_up_entz)
+
+mouse_common_degs_down_entz <- sxcd %>%
+  filter(casematch %in% common_degs_down)
+mouse_common_degs_down_entz <- mouse_common_degs_down_entz$entrez
+mouse_common_degs_down_entz <- c(mouse_common_degs_down_entz)
+
+human_common_degs_up_entz <- sbt %>%
+  filter(casematch %in% common_degs_up)
+human_common_degs_up_entz <- human_common_degs_up_entz$entrez
+human_common_degs_up_entz <- c(human_common_degs_up_entz)
+
+human_common_degs_down_entz <- sbt %>%
+  filter(casematch %in% common_degs_down)
+human_common_degs_down_entz <- human_common_degs_down_entz$entrez
+human_common_degs_down_entz <- c(human_common_degs_down_entz)
+
+#mouse common KEGG
+KEGG_common_up_mouse <- enrichKEGG(
+  gene = mouse_common_degs_up_entz, 
+  organism = "mmu", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = mouse_background_entz)
+
+KEGG_common_up_mouse <- as.data.frame(KEGG_common_up_mouse)
+KEGG_common_up_mouse['direction'] = "Up"
+KEGG_common_up_mouse['species'] = "mouse"
+
+KEGG_common_down_mouse <- enrichKEGG(
+  gene = mouse_common_degs_down_entz, 
+  organism = "mmu", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = mouse_background_entz)
+
+KEGG_common_down_mouse <- as.data.frame(KEGG_common_down_mouse)
+KEGG_common_down_mouse['direction'] = "Down"
+KEGG_common_down_mouse['species'] = "mouse"
+
+#human common KEGG
+KEGG_common_up_human <- enrichKEGG(
+  gene = human_common_degs_up_entz, 
+  organism = "hsa", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = human_background_entz)
+
+KEGG_common_up_human  <- as.data.frame(KEGG_common_up_human )
+KEGG_common_up_human['direction'] = "Up"
+KEGG_common_up_human['species'] = "human" 
+
+KEGG_common_down_human <- enrichKEGG(
+  gene = human_common_degs_down_entz, 
+  organism = "hsa", 
+  keyType = "ncbi-geneid", 
+  pvalueCutoff = 0.05, 
+  qvalueCutoff = 0.05, 
+  minGSSize = 15, 
+  maxGSSize = 500,
+  pAdjustMethod = "BH", 
+  universe = human_background_entz)
+
+KEGG_common_down_human <- as.data.frame(KEGG_common_down_human)
+KEGG_common_down_human['direction'] = "Down"
+KEGG_common_down_human['species'] = "human"
+
+KEGG_common_degs <- dplyr::bind_rows(KEGG_common_up_mouse, 
+                                     KEGG_common_down_mouse, 
+                                     KEGG_common_up_human, 
+                                     KEGG_common_down_human)
+
+write.csv(KEGG_common_degs, "E:/paper-files/KEGG_common_degs.csv", row.names = TRUE)
+
+#plot kegg - plot all regardless of overlap
+##convert gene ratio into a number i.e. calculate the ratio
+#split the character values into two parts
+split_result <- strsplit(KEGG_common_degs$GeneRatio, "/")
+#Convert the parts to numeric values and perform division
+GeneRatioCalc <- sapply(split_result, function(x) as.numeric(x[1]) / as.numeric(x[2]))
+#add the numeric result to a new column
+KEGG_common_degs$GeneRatioCalc <- GeneRatioCalc
+
+KEGG_common_degs$log10_padj <- -log10(KEGG_common_degs$p.adjust)
+write.csv(KEGG_common_degs, "E:/paper-files/KEGG_common_degs.csv", row.names = TRUE)
+
+KEGG_common_degs$species <- factor(KEGG_common_degs$species, levels = c("mouse", "human"))
+KEGG_common_degs$direction <- factor(KEGG_common_degs$direction, levels = c("Up", "Down"))
+
+# Wrap long facet labels
+wrapped_labeller <- labeller(subcategory = label_wrap_gen(width = 25))
+
+KEGG_common_degs$Description <- gsub(" - Mus musculus \\(house mouse\\)", "", KEGG_common_degs$Description)
+
+kegg_common_degs_gg <- ggplot(KEGG_common_degs, aes(x = species, y = Description)) + 
+  geom_point(aes(size = Count, shape = direction, fill = log10_padj)) + 
+  facet_grid(subcategory ~ ., scales = "free_y", space = "free_y",  labeller = label_wrap_gen(width = 35)) + 
+  scale_size_continuous() + 
+  scale_color_gradient(low = "blue", high = "red") + 
+  scale_fill_gradient(low = "blue", high = "red") +
+  scale_shape_manual(values = c("Up" = 24, "Down" = 25)) + 
+  labs(x = "", y = "", 
+       title = "KEGG Pathway Analysis", 
+       subtitle = "for Significant DEGs (Group/Control)",
+       fill = "-log10(p.adj)", 
+       size = "Gene Count") + 
+  theme_grey() +
+  theme(
+    axis.text.x = element_text(angle = 90, size = 20.0, vjust = 0.5),
+    axis.text.y = element_text(size = 18.0, vjust = 0.5),
+    axis.title.x = element_text(size = 20.0, vjust = -3.0),
+    axis.title.y = element_text(size = 20.0, vjust = 3.0),
+    text = element_text(size = 16.0),
+    plot.title = element_text(vjust = +3.0, hjust = 0.5),
+    plot.margin = margin(1,1,1,1, "cm"), 
+    strip.text.y = element_text(size = 17, angle = 0, hjust = 0.5), 
+    panel.spacing.y = unit(0.2, "lines"),  
+    legend.position = "right",  legend.margin = margin(t = 5),
+  )
+
+print(kegg_common_degs_gg)
+ggsave("E:/paper-files/images/KEGG_common_degs.png", plot = kegg_common_degs_gg, width = 12, height = 8, 
+       dpi = 800, bg = "transparent")
